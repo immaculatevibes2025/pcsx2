@@ -212,22 +212,39 @@ private:
 	// Constant-power pairwise panning around the decode circle.
 	// Output index order: 0 FL, 1 FC, 2 FR, 3 RR, 4 RL. L appears at both ends, inverted at 180 degrees
 	// because the direction vector has flipped sign there.
+	//
+	// Out-of-phase (rear-half) sources are held fully in the surrounds over a wide zone. The reference rear
+	// positions from a PLII encoder are ~125.3 (RR) and ~144.7 (RL), but games encoded surround themselves
+	// (PS2 SPU2 phase-inverted voices) and often use more one-sided mixes. Like a receiver, only treat a source
+	// as moving towards the front speakers once it is nearly single-channel.
 	static void NodeGains(float theta, std::array<float, 5>& g)
 	{
-		static constexpr float ang[] = {0.0f, 45.0f, 90.0f, 125.26f, 144.74f, 180.0f};
-		static constexpr int ch[] = {0, 1, 2, 3, 4, 0};
-		static constexpr float sgn[] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
-		for (int i = 0; i < 5; i++)
+		static constexpr float ang[] = {0.0f, 45.0f, 90.0f, RR_EDGE, 125.26f, 144.74f, RL_EDGE, 180.0f};
+		static constexpr int ch[] = {0, 1, 2, 3, 3, 4, 4, 0};
+		static constexpr float sgn[] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f};
+		static constexpr int count = static_cast<int>(std::size(ang)) - 1;
+		for (int i = 0; i < count; i++)
 		{
-			if (theta <= ang[i + 1] || i == 4)
+			if (theta <= ang[i + 1] || i == count - 1)
 			{
 				const float t = std::clamp((theta - ang[i]) / (ang[i + 1] - ang[i]), 0.0f, 1.0f);
+				if (ch[i] == ch[i + 1])
+				{
+					// plateau: stay fully in this speaker
+					g[ch[i]] += sgn[i];
+					return;
+				}
 				g[ch[i]] += sgn[i] * std::cos(t * 1.57079633f);
 				g[ch[i + 1]] += sgn[i + 1] * std::sin(t * 1.57079633f);
 				return;
 			}
 		}
 	}
+
+	// Angles where a rear source starts to move towards the front side speaker. 180/0 = L only, 90 = R only.
+	// 168 corresponds to Lt:Rt of roughly 1 : -0.2; anything with more opposite-phase content stays in the rear.
+	static constexpr float RL_EDGE = 168.0f;
+	static constexpr float RR_EDGE = 102.0f;
 
 	float m_fs;
 	float m_lfe_level;
