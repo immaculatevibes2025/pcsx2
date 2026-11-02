@@ -497,11 +497,13 @@ s32 SPU2freeze(FreezeAction mode, freezeData* data)
 
 static void DCFilter(float *input)
 {
-	// A simple DC blocking high-pass filter
+	// A simple DC blocking high-pass filter.
+	// Pole at 0.9995 puts the corner at ~4 Hz @ 48 kHz. The previous 0.995 (~38 Hz)
+	// removed 3-7 dB of 20-40 Hz bass, starving the LFE channel and thinning the mix.
 	// Implementation from http://peabody.sapp.org/class/dmp2/lab/dcblock/
 	float output[2];
-	output[0] = (input[0] - DCFilterIn[0] + ((0.995f * DCFilterOut[0])));
-	output[1] = (input[1] - DCFilterIn[1] + ((0.995f * DCFilterOut[1])));
+	output[0] = (input[0] - DCFilterIn[0] + ((0.9995f * DCFilterOut[0])));
+	output[1] = (input[1] - DCFilterIn[1] + ((0.9995f * DCFilterOut[1])));
 
 	DCFilterIn[0] = input[0];
 	DCFilterIn[1] = input[1];

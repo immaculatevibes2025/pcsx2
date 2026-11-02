@@ -65,8 +65,8 @@ struct AudioStreamParameters
 	static constexpr float DEFAULT_EXPAND_CENTER_IMAGE = 1.0f;
 	static constexpr float DEFAULT_EXPAND_FRONT_SEPARATION = 1.0f;
 	static constexpr float DEFAULT_EXPAND_REAR_SEPARATION = 1.0f;
-	static constexpr u8 DEFAULT_EXPAND_LOW_CUTOFF = 40;
-	static constexpr u8 DEFAULT_EXPAND_HIGH_CUTOFF = 90;
+	static constexpr u8 DEFAULT_EXPAND_LOW_CUTOFF = 80;
+	static constexpr u8 DEFAULT_EXPAND_HIGH_CUTOFF = 120;
 
 	static constexpr u16 DEFAULT_STRETCH_SEQUENCE_LENGTH = 30;
 	static constexpr u16 DEFAULT_STRETCH_SEEKWINDOW = 20;

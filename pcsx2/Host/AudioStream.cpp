@@ -815,7 +815,7 @@ void AudioStreamParameters::LoadSave(SettingsWrapper& wrap, const char* section)
 		expand_center_image = std::clamp(expand_center_image, 0.0f, 1.0f);
 		expand_front_separation = std::clamp(expand_front_separation, 0.0f, 10.0f);
 		expand_rear_separation = std::clamp(expand_rear_separation, 0.0f, 10.0f);
-		expand_low_cutoff = std::min<u8>(expand_low_cutoff, 100);
-		expand_high_cutoff = std::min<u8>(expand_high_cutoff, 100);
+		expand_low_cutoff = std::min<u8>(expand_low_cutoff, 250);
+		expand_high_cutoff = std::min<u8>(expand_high_cutoff, 250);
 	}
 }
