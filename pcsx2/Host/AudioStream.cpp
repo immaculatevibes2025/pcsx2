@@ -525,7 +525,14 @@ void AudioStream::ExpandAllocate()
 	if (m_parameters.expansion_mode == AudioExpansionMode::DolbyProLogicII)
 	{
 		// Uses the expansion "high cutoff" as the bass crossover frequency (0 = no bass redirection).
-		m_dpl2_decoder = std::make_unique<DolbyProLogicIIDecoder>(m_sample_rate, static_cast<float>(m_parameters.expand_high_cutoff));
+		DolbyProLogicIIDecoder::Settings dpl2;
+		dpl2.mode = static_cast<DolbyProLogicIIDecoder::Mode>(m_parameters.dpl2_mode);
+		dpl2.lfe_crossover_hz = static_cast<float>(m_parameters.expand_high_cutoff);
+		dpl2.surround_delay_ms = static_cast<float>(m_parameters.dpl2_surround_delay_ms);
+		dpl2.center_width = m_parameters.dpl2_center_width;
+		dpl2.dimension = m_parameters.dpl2_dimension;
+		dpl2.panorama = m_parameters.dpl2_panorama;
+		m_dpl2_decoder = std::make_unique<DolbyProLogicIIDecoder>(m_sample_rate, dpl2);
 		m_dpl2_output = std::make_unique<float[]>(CHUNK_SIZE * DolbyProLogicIIDecoder::NUM_OUTPUT_CHANNELS);
 		return;
 	}
@@ -822,6 +829,12 @@ void AudioStreamParameters::LoadSave(SettingsWrapper& wrap, const char* section)
 	wrap.Entry(section, "ExpandRearSeparation", expand_rear_separation, DEFAULT_EXPAND_REAR_SEPARATION);
 	expand_low_cutoff = static_cast<u16>(std::clamp<int>(wrap.EntryBitfield(section, "ExpandLowCutoff", DEFAULT_EXPAND_LOW_CUTOFF), 0, std::numeric_limits<u8>::max()));
 	expand_high_cutoff = static_cast<u16>(std::clamp<int>(wrap.EntryBitfield(section, "ExpandHighCutoff", DEFAULT_EXPAND_HIGH_CUTOFF), 0, std::numeric_limits<u8>::max()));
+
+	dpl2_mode = static_cast<u8>(std::clamp(wrap.EntryBitfield(section, "DPL2Mode", dpl2_mode, DEFAULT_DPL2_MODE), 0, 2));
+	dpl2_surround_delay_ms = static_cast<u8>(std::clamp(wrap.EntryBitfield(section, "DPL2SurroundDelayMS", dpl2_surround_delay_ms, DEFAULT_DPL2_SURROUND_DELAY_MS), 0, 25));
+	dpl2_center_width = static_cast<u8>(std::clamp(wrap.EntryBitfield(section, "DPL2CenterWidth", dpl2_center_width, DEFAULT_DPL2_CENTER_WIDTH), 0, 7));
+	dpl2_dimension = static_cast<s8>(std::clamp(wrap.EntryBitfield(section, "DPL2Dimension", dpl2_dimension, DEFAULT_DPL2_DIMENSION), -3, 3));
+	dpl2_panorama = wrap.EntryBitBool(section, "DPL2Panorama", DEFAULT_DPL2_PANORAMA);
 
 	// Clamping of values.
 	if (wrap.IsLoading())

@@ -387,6 +387,25 @@ void AudioSettingsWidget::onExpansionSettingsClicked()
 		AudioStreamParameters::DEFAULT_EXPAND_HIGH_CUTOFF);
 	QtUtils::BindLabelToSlider(dlgui.highCutoff, dlgui.highCutoffLabel);
 
+	SettingWidgetBinder::BindWidgetToIntSetting(sif, dlgui.dpl2Mode, "SPU2/Output", "DPL2Mode",
+		AudioStreamParameters::DEFAULT_DPL2_MODE);
+	SettingWidgetBinder::BindWidgetToIntSetting(sif, dlgui.dpl2SurroundDelay, "SPU2/Output", "DPL2SurroundDelayMS",
+		AudioStreamParameters::DEFAULT_DPL2_SURROUND_DELAY_MS);
+	SettingWidgetBinder::BindWidgetToIntSetting(sif, dlgui.dpl2CenterWidth, "SPU2/Output", "DPL2CenterWidth",
+		AudioStreamParameters::DEFAULT_DPL2_CENTER_WIDTH);
+	SettingWidgetBinder::BindWidgetToIntSetting(sif, dlgui.dpl2Dimension, "SPU2/Output", "DPL2Dimension",
+		AudioStreamParameters::DEFAULT_DPL2_DIMENSION);
+	SettingWidgetBinder::BindWidgetToBoolSetting(sif, dlgui.dpl2Panorama, "SPU2/Output", "DPL2Panorama",
+		AudioStreamParameters::DEFAULT_DPL2_PANORAMA);
+	const auto update_dpl2_music = [&dlgui]() {
+		const bool music = (dlgui.dpl2Mode->currentIndex() == 2);
+		dlgui.dpl2CenterWidth->setEnabled(music);
+		dlgui.dpl2Dimension->setEnabled(music);
+		dlgui.dpl2Panorama->setEnabled(music);
+	};
+	connect(dlgui.dpl2Mode, &QComboBox::currentIndexChanged, &dlg, update_dpl2_music);
+	update_dpl2_music();
+
 	connect(dlgui.buttonBox->button(QDialogButtonBox::Close), &QPushButton::clicked, &dlg, &QDialog::accept);
 	connect(dlgui.buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, [this, &dlg]() {
 		dialog()->setIntSettingValue("SPU2/Output", "ExpandBlockSize",
@@ -427,6 +446,16 @@ void AudioSettingsWidget::onExpansionSettingsClicked()
 			dialog()->isPerGameSettings() ?
 				std::nullopt :
 				std::optional<int>(AudioStreamParameters::DEFAULT_EXPAND_HIGH_CUTOFF));
+		dialog()->setIntSettingValue("SPU2/Output", "DPL2Mode",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<int>(AudioStreamParameters::DEFAULT_DPL2_MODE));
+		dialog()->setIntSettingValue("SPU2/Output", "DPL2SurroundDelayMS",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<int>(AudioStreamParameters::DEFAULT_DPL2_SURROUND_DELAY_MS));
+		dialog()->setIntSettingValue("SPU2/Output", "DPL2CenterWidth",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<int>(AudioStreamParameters::DEFAULT_DPL2_CENTER_WIDTH));
+		dialog()->setIntSettingValue("SPU2/Output", "DPL2Dimension",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<int>(AudioStreamParameters::DEFAULT_DPL2_DIMENSION));
+		dialog()->setBoolSettingValue("SPU2/Output", "DPL2Panorama",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<bool>(AudioStreamParameters::DEFAULT_DPL2_PANORAMA));
 
 		dlg.done(0);
 

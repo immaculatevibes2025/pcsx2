@@ -402,6 +402,103 @@
     </layout>
    </item>
    <item row="11" column="0" colspan="2">
+    <widget class="QLabel" name="dpl2Header">
+     <property name="text">
+      <string>&lt;b&gt;Dolby Pro Logic II&lt;/b&gt; (only used by the Dolby Pro Logic II expansion mode; High Cutoff sets its subwoofer crossover in Game mode)</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="12" column="0">
+    <widget class="QLabel" name="dpl2ModeLabel">
+     <property name="text">
+      <string>Mode:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="12" column="1">
+    <widget class="QComboBox" name="dpl2Mode">
+     <item>
+      <property name="text">
+       <string>Game (bass to subwoofer)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Movie</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Music</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="13" column="0">
+    <widget class="QLabel" name="dpl2SurroundDelayLabel">
+     <property name="text">
+      <string>Surround Delay:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="13" column="1">
+    <widget class="QSpinBox" name="dpl2SurroundDelay">
+     <property name="suffix">
+      <string> ms</string>
+     </property>
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>25</number>
+     </property>
+    </widget>
+   </item>
+   <item row="14" column="0">
+    <widget class="QLabel" name="dpl2CenterWidthLabel">
+     <property name="text">
+      <string>Center Width (Music):</string>
+     </property>
+    </widget>
+   </item>
+   <item row="14" column="1">
+    <widget class="QSpinBox" name="dpl2CenterWidth">
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>7</number>
+     </property>
+    </widget>
+   </item>
+   <item row="15" column="0">
+    <widget class="QLabel" name="dpl2DimensionLabel">
+     <property name="text">
+      <string>Dimension (Music):</string>
+     </property>
+    </widget>
+   </item>
+   <item row="15" column="1">
+    <widget class="QSpinBox" name="dpl2Dimension">
+     <property name="minimum">
+      <number>-3</number>
+     </property>
+     <property name="maximum">
+      <number>3</number>
+     </property>
+    </widget>
+   </item>
+   <item row="16" column="1">
+    <widget class="QCheckBox" name="dpl2Panorama">
+     <property name="text">
+      <string>Panorama (Music)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="17" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Close|QDialogButtonBox::StandardButton::RestoreDefaults</set>

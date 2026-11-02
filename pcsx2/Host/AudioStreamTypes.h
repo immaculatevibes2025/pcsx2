@@ -53,6 +53,12 @@ struct AudioStreamParameters
 	u8 expand_low_cutoff = DEFAULT_EXPAND_LOW_CUTOFF;
 	u8 expand_high_cutoff = DEFAULT_EXPAND_HIGH_CUTOFF;
 
+	u8 dpl2_mode = DEFAULT_DPL2_MODE; // 0 = Game, 1 = Movie, 2 = Music
+	u8 dpl2_surround_delay_ms = DEFAULT_DPL2_SURROUND_DELAY_MS;
+	u8 dpl2_center_width = DEFAULT_DPL2_CENTER_WIDTH;
+	s8 dpl2_dimension = DEFAULT_DPL2_DIMENSION;
+	bool dpl2_panorama = DEFAULT_DPL2_PANORAMA;
+
 	static constexpr AudioExpansionMode DEFAULT_EXPANSION_MODE = AudioExpansionMode::Disabled;
 	static constexpr u16 DEFAULT_BUFFER_MS = 50;
 	static constexpr u16 DEFAULT_OUTPUT_LATENCY_MS = 20;
@@ -68,6 +74,12 @@ struct AudioStreamParameters
 	static constexpr float DEFAULT_EXPAND_REAR_SEPARATION = 1.0f;
 	static constexpr u8 DEFAULT_EXPAND_LOW_CUTOFF = 80;
 	static constexpr u8 DEFAULT_EXPAND_HIGH_CUTOFF = 120;
+
+	static constexpr u8 DEFAULT_DPL2_MODE = 0;
+	static constexpr u8 DEFAULT_DPL2_SURROUND_DELAY_MS = 10;
+	static constexpr u8 DEFAULT_DPL2_CENTER_WIDTH = 0;
+	static constexpr s8 DEFAULT_DPL2_DIMENSION = 0;
+	static constexpr bool DEFAULT_DPL2_PANORAMA = false;
 
 	static constexpr u16 DEFAULT_STRETCH_SEQUENCE_LENGTH = 30;
 	static constexpr u16 DEFAULT_STRETCH_SEEKWINDOW = 20;
