@@ -162,6 +162,10 @@ bool CubebAudioStream::Initialize(const char* driver_name, const char* device_na
 				&SampleReaderImpl<AudioExpansionMode::Surround71, READ_CHANNEL_FRONT_LEFT, READ_CHANNEL_FRONT_RIGHT,
 					READ_CHANNEL_FRONT_CENTER, READ_CHANNEL_LFE, READ_CHANNEL_REAR_LEFT, READ_CHANNEL_REAR_RIGHT,
 					READ_CHANNEL_SIDE_LEFT, READ_CHANNEL_SIDE_RIGHT>},
+			// DolbyProLogicII
+			{CUBEB_LAYOUT_3F2_LFE_BACK,
+				&SampleReaderImpl<AudioExpansionMode::DolbyProLogicII, READ_CHANNEL_FRONT_LEFT, READ_CHANNEL_FRONT_RIGHT,
+					READ_CHANNEL_FRONT_CENTER, READ_CHANNEL_LFE, READ_CHANNEL_REAR_LEFT, READ_CHANNEL_REAR_RIGHT>},
 		}};
 
 	cubeb_stream_params params = {};

@@ -786,6 +786,7 @@
       <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="Host\AudioStream.h" />
+    <ClInclude Include="Host\DolbyProLogicIIDecoder.h" />
     <ClInclude Include="Host\AudioStreamTypes.h" />
     <ClInclude Include="ImGui\FullscreenUI.h" />
     <ClInclude Include="ImGui\FullscreenUI_Internal.h" />

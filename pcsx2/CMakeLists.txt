@@ -844,6 +844,7 @@ set(pcsx2HostSources
 
 set(pcsx2HostHeaders
 	Host/AudioStream.h
+	Host/DolbyProLogicIIDecoder.h
 	Host/AudioStreamTypes.h)
 
 set(pcsx2ImGuiSources

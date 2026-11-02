@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0+
 
 #include "Host/AudioStream.h"
+#include "DolbyProLogicIIDecoder.h"
 #include "FreeSurroundDecoder.h"
 #include "Host.h"
 #include "GS/GSVector.h"
@@ -35,6 +36,7 @@ static constexpr const std::array<std::pair<u8, u8>, static_cast<size_t>(AudioEx
 		{u8(5), u8(5)}, // QuadraphonicLFE
 		{u8(6), u8(6)}, // Surround51
 		{u8(8), u8(8)}, // Surround71
+		{u8(6), u8(6)}, // DolbyProLogicII
 	}};
 
 AudioStream::DeviceInfo::DeviceInfo(std::string name_, std::string display_name_, u32 minimum_latency_)
@@ -187,6 +189,7 @@ static constexpr const std::array s_expansion_mode_names = {
 	"QuadraphonicLFE",
 	"Surround51",
 	"Surround71",
+	"DolbyProLogicII",
 };
 static constexpr const std::array s_expansion_mode_display_names = {
 	TRANSLATE_NOOP("AudioStream", "Disabled (Stereo)"),
@@ -195,6 +198,7 @@ static constexpr const std::array s_expansion_mode_display_names = {
 	TRANSLATE_NOOP("AudioStream", "Quadraphonic with LFE"),
 	TRANSLATE_NOOP("AudioStream", "5.1 Surround"),
 	TRANSLATE_NOOP("AudioStream", "7.1 Surround"),
+	TRANSLATE_NOOP("AudioStream", "Dolby Pro Logic II (5.1)"),
 };
 
 const char* AudioStream::GetExpansionModeName(AudioExpansionMode mode)
@@ -402,7 +406,7 @@ void AudioStream::AllocateBuffer()
 	m_buffer = std::make_unique<float[]>(m_buffer_size * m_internal_channels);
 	m_staging_buffer = std::make_unique<float[]>(CHUNK_SIZE * m_internal_channels);
 
-	if (IsExpansionEnabled())
+	if (IsExpansionEnabled() && m_parameters.expansion_mode != AudioExpansionMode::DolbyProLogicII)
 		m_expand_buffer = std::make_unique<float[]>(m_parameters.expand_block_size * NUM_INPUT_CHANNELS);
 
 	DEV_LOG(
@@ -423,7 +427,11 @@ void AudioStream::DestroyBuffer()
 
 void AudioStream::EmptyBuffer()
 {
-	if (IsExpansionEnabled())
+	if (m_dpl2_decoder)
+	{
+		m_dpl2_decoder->Flush();
+	}
+	else if (IsExpansionEnabled())
 	{
 		m_expander->Flush();
 		m_expand_output_buffer = nullptr;
@@ -510,9 +518,17 @@ void AudioStream::WriteFrame(const SampleType* frame)
 
 void AudioStream::ExpandAllocate()
 {
-	pxAssert(!m_expander);
+	pxAssert(!m_expander && !m_dpl2_decoder);
 	if (m_parameters.expansion_mode == AudioExpansionMode::Disabled)
 		return;
+
+	if (m_parameters.expansion_mode == AudioExpansionMode::DolbyProLogicII)
+	{
+		// Uses the expansion "high cutoff" as the bass crossover frequency (0 = no bass redirection).
+		m_dpl2_decoder = std::make_unique<DolbyProLogicIIDecoder>(m_sample_rate, static_cast<float>(m_parameters.expand_high_cutoff));
+		m_dpl2_output = std::make_unique<float[]>(CHUNK_SIZE * DolbyProLogicIIDecoder::NUM_OUTPUT_CHANNELS);
+		return;
+	}
 
 	static constexpr std::array<std::pair<FreeSurroundDecoder::ChannelSetup, bool>,
 		static_cast<size_t>(AudioExpansionMode::Count)>
@@ -523,6 +539,7 @@ void AudioStream::ExpandAllocate()
 			{FreeSurroundDecoder::ChannelSetup::Surround41, true}, // QuadraphonicLFE
 			{FreeSurroundDecoder::ChannelSetup::Surround51, true}, // Surround51
 			{FreeSurroundDecoder::ChannelSetup::Surround71, true}, // Surround71
+			{FreeSurroundDecoder::ChannelSetup::Surround51, true}, // DolbyProLogicII (not used)
 		}};
 
 	const auto [fs_setup, fs_lfe] = channel_setup_mapping[static_cast<size_t>(m_parameters.expansion_mode)];
@@ -563,7 +580,13 @@ void AudioStream::WriteChunk(const SampleType* chunk)
 		return;
 	}
 
-	if (IsExpansionEnabled())
+	if (m_dpl2_decoder)
+	{
+		// Sample-by-sample decoder with no block latency.
+		m_dpl2_decoder->Decode(chunk, m_dpl2_output.get(), CHUNK_SIZE);
+		StretchWriteBlock(m_dpl2_output.get());
+	}
+	else if (IsExpansionEnabled())
 	{
 		// StretchWriteBlock() overwrites the staging buffer on output, so we need to copy into the expand buffer first.
 		std::memcpy(m_expand_buffer.get() + m_expand_buffer_pos * NUM_INPUT_CHANNELS, chunk, CHUNK_SIZE * NUM_INPUT_CHANNELS * sizeof(SampleType));

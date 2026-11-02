@@ -2356,6 +2356,9 @@
     <ClInclude Include="Host\AudioStream.h">
       <Filter>Misc\Host</Filter>
     </ClInclude>
+    <ClInclude Include="Host\DolbyProLogicIIDecoder.h">
+      <Filter>Misc\Host</Filter>
+    </ClInclude>
     <ClInclude Include="Host\AudioStreamTypes.h">
       <Filter>Misc\Host</Filter>
     </ClInclude>

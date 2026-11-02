@@ -25,6 +25,7 @@ enum class AudioExpansionMode : u8
 	QuadraphonicLFE,
 	Surround51,
 	Surround71,
+	DolbyProLogicII,
 	Count
 };
 

@@ -120,7 +120,10 @@ AudioSettingsWidget::AudioSettingsWidget(SettingsWindow* settings_dialog, QWidge
 		tr("Prevents the emulator from producing any audible sound."));
 	dialog()->registerWidgetHelp(m_ui.expansionMode, tr("Expansion Mode"), tr("Disabled (Stereo)"),
 		tr("Determines how audio is expanded from stereo to surround for supported games. This "
-		   "includes games that support Dolby Pro Logic/Pro Logic II."));
+		   "includes games that support Dolby Pro Logic/Pro Logic II.<br><br>"
+		   "Dolby Pro Logic II (5.1) uses a dedicated time-domain matrix decoder modelled on a Pro Logic II receiver "
+		   "(broadband steering, 10 ms surround delay, bass sent to the LFE below the High Cutoff frequency). "
+		   "The other surround modes use FreeSurround."));
 	dialog()->registerWidgetHelp(m_ui.expansionSettings, tr("Expansion Settings"), tr("N/A"),
 		tr("These settings fine-tune the behavior of the FreeSurround-based channel expander."));
 	dialog()->registerWidgetHelp(m_ui.syncMode, tr("Synchronization"), tr("TimeStretch (Recommended)"),

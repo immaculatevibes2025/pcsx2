@@ -15,6 +15,7 @@
 
 class Error;
 
+class DolbyProLogicIIDecoder;
 class FreeSurroundDecoder;
 namespace soundtouch
 {
@@ -189,6 +190,8 @@ private:
 	std::unique_ptr<SampleType[]> m_staging_buffer;
 
 	std::unique_ptr<FreeSurroundDecoder> m_expander;
+	std::unique_ptr<DolbyProLogicIIDecoder> m_dpl2_decoder;
+	std::unique_ptr<float[]> m_dpl2_output;
 
 	// block buffer for expansion
 	std::unique_ptr<float[]> m_expand_buffer;
@@ -212,6 +215,7 @@ void AudioStream::SampleReaderImpl(SampleType* dest, const SampleType* src, u32 
 			{{0, -1, 2, -1, -1, 2, 3, 4}, 5}, // QuadraphonicLFE
 			{{0, 1, 2, -1, -1, 3, 4, 5}, 6}, // Surround51
 			{{0, 1, 2, 3, 4, 5, 6, 7}, 8}, // Surround71
+			{{0, 1, 2, -1, -1, 3, 4, 5}, 6}, // DolbyProLogicII (same layout as Surround51)
 		}};
 	constexpr const auto& lut = luts[static_cast<size_t>(mode)].first;
 	for (u32 i = 0; i < num_frames; i++)
