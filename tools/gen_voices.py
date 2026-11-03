@@ -28,6 +28,8 @@ LABELS = [
     "Surround left, game mix B",
     "Surround right, game mix A",
     "Surround right, game mix B",
+    "Star Ocean 3, surround right",
+    "Star Ocean 3, surround left",
     "Circle sweep",
     "Subwoofer",
     "Dialogue and surround effect",

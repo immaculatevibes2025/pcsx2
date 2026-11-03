@@ -546,7 +546,7 @@ int main(void)
 		DrawRoom(rcx, rcy, rr, &audio, frame);
 
 		// Test list
-		const float lx = 330, ly = 56, row = 19;
+		const float lx = 330, ly = 54, row = 17;
 		Rect(lx - 10, ly - 6, W - 14, ly + NUM_TESTS * row + 4, COL_PANEL);
 		for (int i = 0; i < NUM_TESTS; i++)
 		{
@@ -554,8 +554,8 @@ int main(void)
 			if (i == sel)
 				Rect(lx - 6, y - 1, W - 18, y + row - 1, COL_SEL);
 			snprintf(line, sizeof(line), "%d", i + 1);
-			Text(lx + 18 - TextWidth(0.65f, line), y, 0.65f, i == sel ? COL_ACCENT : COL_DIM, line);
-			Text(lx + 28, y, 0.65f, i == sel ? COL_TEXT : COL_DIM, g_tests[i].name);
+			Text(lx + 18 - TextWidth(0.6f, line), y, 0.6f, i == sel ? COL_ACCENT : COL_DIM, line);
+			Text(lx + 28, y, 0.6f, i == sel ? COL_TEXT : COL_DIM, g_tests[i].name);
 			if (i == sel && audio.playing)
 				Disc(W - 30, y + row * 0.5f - 1, 4.0f, (frame / 15) & 1 ? COL_GREEN : COL_ACCENT);
 		}

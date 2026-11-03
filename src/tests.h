@@ -55,12 +55,14 @@ static const struct TestDef g_tests[] = {
 	{"Surround Left, game style mix B", "Surround Left only (receivers keep this in the surround)", NULL, 163.30f, KIND_NOISE, 9},
 	{"Surround Right, game style mix A", "Surround Right only (receivers keep this in the surround)", NULL, 116.57f, KIND_NOISE, 10},
 	{"Surround Right, game style mix B", "Surround Right only (receivers keep this in the surround)", NULL, 106.70f, KIND_NOISE, 11},
-	{"Circle Sweep", "Moves smoothly FL > C > FR > SR > SL > FL, no jumps", "Lt cos(t)  Rt sin(t)", 0.0f, KIND_SWEEP, 12},
-	{"Subwoofer 40 Hz", "Subwoofer in Game mode, front speakers in Movie/Music", "40 Hz tone, Lt 0.707 Rt 0.707", DEG_C, KIND_LFE, 13},
-	{"Dialogue + Surround Left effect", "Voice stays in Center, noise stays in Surround Left; neither drifts", "Voice Lt 0.707 Rt 0.707 + noise at Surround Left", DEG_SL, KIND_DUAL, 14},
-	{"Fast Sweep", "Follows a full lap every 1.5 s without lagging or jumping", "Lt cos(t)  Rt sin(t), fast", 0.0f, KIND_FAST_SWEEP, 15},
-	{"Quiet Levels, Surround Left", "Every burst from Surround Left only, even at -40 dB", "Surround Left at 0, -20, -40 dB", DEG_SL, KIND_LEVELS, 16},
-	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 17},
+	{"Star Ocean 3: Surround Right", "Surround Right only (measured from the game's own surround test)", NULL, 116.5f, KIND_NOISE, 12},
+	{"Star Ocean 3: Surround Left", "Surround Left only (measured from the game's own surround test)", NULL, 150.3f, KIND_NOISE, 13},
+	{"Circle Sweep", "Moves smoothly FL > C > FR > SR > SL > FL, no jumps", "Lt cos(t)  Rt sin(t)", 0.0f, KIND_SWEEP, 14},
+	{"Subwoofer 40 Hz", "Subwoofer in Game mode, front speakers in Movie/Music", "40 Hz tone, Lt 0.707 Rt 0.707", DEG_C, KIND_LFE, 15},
+	{"Dialogue + Surround Left effect", "Voice stays in Center, noise stays in Surround Left; neither drifts", "Voice Lt 0.707 Rt 0.707 + noise at Surround Left", DEG_SL, KIND_DUAL, 16},
+	{"Fast Sweep", "Follows a full lap every 1.5 s without lagging or jumping", "Lt cos(t)  Rt sin(t), fast", 0.0f, KIND_FAST_SWEEP, 17},
+	{"Quiet Levels, Surround Left", "Every burst from Surround Left only, even at -40 dB", "Surround Left at 0, -20, -40 dB", DEG_SL, KIND_LEVELS, 18},
+	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 19},
 };
 
 // Spoken line looped as "dialogue" in the two-source test (index after the test labels)
