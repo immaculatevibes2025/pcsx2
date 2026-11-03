@@ -78,7 +78,7 @@ public:
 
 		m_slow_coef = Coef(150.0f);
 		m_fast_coef = Coef(8.0f);
-		m_gain_coef = Coef(5.0f);
+		m_gain_coef = Coef(GAIN_MS);
 		m_balance_coef = Coef(4000.0f);
 		m_release_coef = Coef(150.0f);
 		m_autobalance = (settings.mode != Mode::Music);
@@ -99,6 +99,9 @@ public:
 		m_delay_len = std::max(1u,
 			static_cast<unsigned>(std::clamp(settings.surround_delay_ms, 0.0f, 50.0f) * 0.001f * m_fs + 0.5f));
 		m_delay[0].assign(m_delay_len, 0.0f);
+		m_la_len = std::max(1u, static_cast<unsigned>(LOOKAHEAD_MS * 0.001f * m_fs + 0.5f));
+		for (auto& v : m_la)
+			v.assign(m_la_len, 0.0f);
 		m_delay[1].assign(m_delay_len, 0.0f);
 	}
 
@@ -120,6 +123,9 @@ public:
 		m_audible = false;
 		m_w = {};
 		std::fill(m_delay[0].begin(), m_delay[0].end(), 0.0f);
+		for (auto& v : m_la)
+			std::fill(v.begin(), v.end(), 0.0f);
+		m_la_pos = 0;
 		std::fill(m_delay[1].begin(), m_delay[1].end(), 0.0f);
 		m_delay_pos = 0;
 		m_limit_gain = 1.0f;
@@ -220,6 +226,20 @@ public:
 				m_w[k] += m_gain_coef * (target[k] - m_w[k]);
 
 			// Ambience: what is left after removing the steered source, through a passive matrix
+			// Look-ahead: the control path above saw this audio LOOKAHEAD_MS ago, so the steering is already in
+			// place when a sound starts. Without it, the first 20-40 ms of every new sound leaked into the
+			// same-side front speaker before steering caught up (and arrived ahead of the delayed surround).
+			{
+				const float dl = m_la[0][m_la_pos], dr = m_la[1][m_la_pos], dlfe = m_la[2][m_la_pos];
+				m_la[0][m_la_pos] = l;
+				m_la[1][m_la_pos] = r;
+				m_la[2][m_la_pos] = lfe;
+				m_la_pos = (m_la_pos + 1 == m_la_len) ? 0 : (m_la_pos + 1);
+				l = dl;
+				r = dr;
+				lfe = dlfe;
+			}
+
 			const float al = l - (m_w[10] * l + m_w[11] * r);
 			const float ar = r - (m_w[11] * l + m_w[12] * r);
 
@@ -395,6 +415,16 @@ private:
 	unsigned m_delay_len = 1, m_delay_pos = 0;
 
 	static constexpr float LIMIT_THRESHOLD = 0.97f;
+#ifndef DPL2_LOOKAHEAD_MS
+#define DPL2_LOOKAHEAD_MS 12.0f
+#endif
+#ifndef DPL2_GAIN_MS
+#define DPL2_GAIN_MS 2.0f
+#endif
+	static constexpr float LOOKAHEAD_MS = DPL2_LOOKAHEAD_MS;
+	static constexpr float GAIN_MS = DPL2_GAIN_MS;
+	std::vector<float> m_la[3];
+	unsigned m_la_len = 1, m_la_pos = 0;
 	float m_limit_gain = 1.0f;
 	float m_release_coef = 0.0f;
 };
