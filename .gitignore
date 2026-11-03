@@ -1,0 +1,4 @@
+*.o
+*.elf
+*_irx.c
+src/voices.c

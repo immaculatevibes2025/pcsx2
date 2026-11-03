@@ -1,0 +1,25 @@
+name: Build PS2 surround test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ps2dev/ps2dev:latest
+    steps:
+      - name: Install build tools and espeak-ng
+        run: apk add --no-cache make python3 espeak-ng git
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          rm -f src/voices.c
+          make
+          ls -la surround-test.elf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ps2-surround-test
+          path: |
+            surround-test.elf
+            README.md
