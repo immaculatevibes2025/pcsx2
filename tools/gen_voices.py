@@ -26,6 +26,7 @@ LABELS = [
     "Between center and front right",
     "Surround left, game mix A",
     "Surround left, game mix B",
+    "Surround right, game mix A",
     "Surround right, game mix B",
     "Circle sweep",
     "Subwoofer",

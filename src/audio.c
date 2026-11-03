@@ -85,8 +85,9 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 		if (a->playing)
 		{
 			const struct TestDef* t = a->test;
-			// The spoken label comes from the test position too (the sweep and ambience announce from the centre)
-			float theta = (t->kind == KIND_NOISE || t->kind == KIND_LFE) ? t->theta : DEG_C;
+			// The spoken label comes from the test position too (the sweep announces from its start, Front Left;
+			// ambience announces from the centre)
+			float theta = (t->kind == KIND_NOISE || t->kind == KIND_LFE || t->kind == KIND_SWEEP) ? t->theta : DEG_C;
 
 			switch (a->phase)
 			{
@@ -183,11 +184,13 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 float Audio_ThetaToAzimuth(float theta)
 {
 	// Lt/Rt angle -> where a PLII decoder puts it, for a 5.1 layout with surrounds at the sides (+/-100 deg).
-	static const float th[] = {0.0f, 45.0f, 90.0f, 125.26f, 135.0f, 144.74f, 180.0f};
-	static const float az[] = {-30.0f, 0.0f, 30.0f, 100.0f, 180.0f, 260.0f, 330.0f};
+	// Like a receiver (and PCSX2's PLII mode), out-of-phase sources stay fully in the surround until they are
+	// nearly single-channel, so the game style mixes are shown in the surround speaker.
+	static const float th[] = {0.0f, 45.0f, 90.0f, 102.0f, 125.26f, 135.0f, 144.74f, 168.0f, 180.0f};
+	static const float az[] = {-30.0f, 0.0f, 30.0f, 100.0f, 100.0f, 180.0f, 260.0f, 260.0f, 330.0f};
 	if (theta <= 0.0f)
 		return az[0];
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 8; i++)
 	{
 		if (theta <= th[i + 1])
 		{
@@ -195,5 +198,5 @@ float Audio_ThetaToAzimuth(float theta)
 			return az[i] + (az[i + 1] - az[i]) * t;
 		}
 	}
-	return az[6];
+	return az[8];
 }

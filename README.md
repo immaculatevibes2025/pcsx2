@@ -22,7 +22,7 @@ Each test speaks its name from the position being tested, then plays pink noise 
 
 1. Front Left, Center, Front Right, Surround Right, Surround Left, Both Surrounds
 2. Phantom images between Front Left/Center and Center/Front Right
-3. "Game style" surround mixes (Lt:Rt of 1:-0.5 and 1:-0.3) that PS2 games use; a receiver keeps these in the surround
+3. "Game style" surround mixes (Lt:Rt of 1:-0.5 and 1:-0.3, left and right) that PS2 games use; a receiver keeps these in the surround
 4. Circle sweep: one lap around the room every 12 seconds, should move smoothly with no jumps
 5. Subwoofer: 40 Hz tone (subwoofer in PCSX2 Game mode or with receiver bass management)
 6. Ambience: uncorrelated noise, should spread evenly and not lock onto one speaker

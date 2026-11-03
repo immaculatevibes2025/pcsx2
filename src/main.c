@@ -317,6 +317,33 @@ static float AzDiff(float a, float b)
 	return fabsf(d);
 }
 
+// How much of a sound at azimuth `az` a PLII decoder sends to the speaker at `spk`: constant-power panning
+// between the two adjacent speakers only (SL -100, FL -30, C 0, FR 30, SR 100, and SR -> SL across the back).
+static float SpeakerGain(float az, float spk)
+{
+	static const float ring[] = {-100.0f, -30.0f, 0.0f, 30.0f, 100.0f, 260.0f};
+	while (az < -100.0f)
+		az += 360.0f;
+	while (az >= 260.0f)
+		az -= 360.0f;
+	for (int i = 0; i < 5; i++)
+	{
+		if (az >= ring[i] && az <= ring[i + 1])
+		{
+			const float t = (az - ring[i]) / (ring[i + 1] - ring[i]);
+			const float a = ring[i], b = (i == 4) ? -100.0f : ring[i + 1];
+			float g = 0.0f;
+			if (AzDiff(spk, a) < 0.5f)
+				g += cosf(t * PI * 0.5f);
+			if (AzDiff(spk, b) < 0.5f)
+				g += sinf(t * PI * 0.5f);
+			// below about -20 dB counts as off
+			return g > 0.1f ? g : 0.0f;
+		}
+	}
+	return 0.0f;
+}
+
 static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, int frame)
 {
 	Rect(cx - rad - 30, cy - rad - 30, cx + rad + 30, cy + rad + 30, COL_ROOM);
@@ -340,13 +367,7 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 			if (spread)
 				on = 0.5f;
 			else if (t->kind != KIND_LFE)
-			{
-				// Behind the listener (between the side surrounds) both surrounds share the sound
-				const float d = (AzDiff(az, 180.0f) < 80.0f && fabsf(s->az) > 90.0f) ?
-									AzDiff(az, 180.0f) * 0.5f + (AzDiff(az, s->az) < AzDiff(az, -s->az) ? 0.0f : 20.0f) :
-									AzDiff(az, s->az);
-				on = fmaxf(0.0f, 1.0f - d / 45.0f);
-			}
+				on = SpeakerGain(az, s->az);
 		}
 		if (on > 0.0f)
 			Disc(sx, sy, 22.0f + 6.0f * on, COL_GLOW);

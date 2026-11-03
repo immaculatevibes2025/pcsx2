@@ -50,10 +50,11 @@ static const struct TestDef g_tests[] = {
 	{"Between Center and Front Right", "Phantom image between Center and Front Right", NULL, 67.5f, KIND_NOISE, 7},
 	{"Surround Left, game style mix A", "Surround Left only (receivers keep this in the surround)", NULL, 153.43f, KIND_NOISE, 8},
 	{"Surround Left, game style mix B", "Surround Left only (receivers keep this in the surround)", NULL, 163.30f, KIND_NOISE, 9},
-	{"Surround Right, game style mix B", "Surround Right only (receivers keep this in the surround)", NULL, 106.70f, KIND_NOISE, 10},
-	{"Circle Sweep", "Moves smoothly FL > C > FR > SR > SL > FL, no jumps", "Lt cos(t)  Rt sin(t)", 0.0f, KIND_SWEEP, 11},
-	{"Subwoofer 40 Hz", "Subwoofer in Game mode, front speakers in Movie/Music", "40 Hz tone, Lt 0.707 Rt 0.707", DEG_C, KIND_LFE, 12},
-	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 13},
+	{"Surround Right, game style mix A", "Surround Right only (receivers keep this in the surround)", NULL, 116.57f, KIND_NOISE, 10},
+	{"Surround Right, game style mix B", "Surround Right only (receivers keep this in the surround)", NULL, 106.70f, KIND_NOISE, 11},
+	{"Circle Sweep", "Moves smoothly FL > C > FR > SR > SL > FL, no jumps", "Lt cos(t)  Rt sin(t)", 0.0f, KIND_SWEEP, 12},
+	{"Subwoofer 40 Hz", "Subwoofer in Game mode, front speakers in Movie/Music", "40 Hz tone, Lt 0.707 Rt 0.707", DEG_C, KIND_LFE, 13},
+	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 14},
 };
 
 #define NUM_TESTS ((int)(sizeof(g_tests) / sizeof(g_tests[0])))
