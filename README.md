@@ -23,12 +23,12 @@ Each test speaks its name from the position being tested, then plays pink noise 
 1. Front Left, Center, Front Right, Surround Right, Surround Left, Both Surrounds
 2. Phantom images between Front Left/Center and Center/Front Right
 3. "Game style" surround mixes (Lt:Rt of 1:-0.5 and 1:-0.3, left and right) that PS2 games use; a receiver keeps these in the surround
-4. Star Ocean 3 surround positions, measured from the game's own surround test (Lt:Rt -0.45:0.90 and -0.87:0.50)
+4. Real game surround positions, measured from a PS2 game's own surround test (Lt:Rt -0.45:0.90 and -0.87:0.50)
 5. Circle sweep: one lap around the room every 12 seconds, should move smoothly with no jumps
 5. Subwoofer: 40 Hz tone (subwoofer in PCSX2 Game mode or with receiver bass management)
-6. Dialogue + Surround Left effect: two sources at once, the hardest case for a matrix decoder
-7. Fast sweep: one lap every 1.5 seconds, checks steering keeps up
-8. Quiet levels: Surround Left at 0, -20 and -40 dB, should stay in the surround at every level
+6. Dialogue + Surround Left/Right effect: two sources at once, the hardest case for a matrix decoder
+7. Fast sweep: one lap every 2.5 seconds, checks steering keeps up
+8. Quiet levels: Surround Left and Right at 0, -20 and -40 dB, should stay in the surround at every level
 9. Ambience: uncorrelated noise, should spread evenly and not lock onto one speaker
 
 ## Encoding

@@ -11,7 +11,7 @@
 #define PAUSE_SAMPLES (AUDIO_RATE * 4 / 10)
 #define FADE_SAMPLES (AUDIO_RATE / 100) // 10 ms fades so bursts don't click
 #define SWEEP_DEG_PER_SAMPLE (180.0f / (AUDIO_RATE * 12.0f)) // full circle in 12 s
-#define FAST_SWEEP_DEG_PER_SAMPLE (180.0f / (AUDIO_RATE * 1.5f)) // full circle in 1.5 s
+#define FAST_SWEEP_DEG_PER_SAMPLE (180.0f / (AUDIO_RATE * 2.5f)) // full circle in 2.5 s
 #define DIALOGUE_GAP (AUDIO_RATE / 2)
 
 #define NOISE_GAIN 0.25f // about -18 dBFS RMS pink noise

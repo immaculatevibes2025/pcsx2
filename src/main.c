@@ -545,20 +545,33 @@ int main(void)
 		const float rcx = 168, rcy = 186, rr = 100;
 		DrawRoom(rcx, rcy, rr, &audio, frame);
 
-		// Test list
-		const float lx = 330, ly = 54, row = 17;
-		Rect(lx - 10, ly - 6, W - 14, ly + NUM_TESTS * row + 4, COL_PANEL);
-		for (int i = 0; i < NUM_TESTS; i++)
+		// Test list (scrolls with the selection)
+		const float lx = 330, ly = 54, row = 18;
+		const int visible = 19;
+		int first = sel - visible / 2;
+		if (first > NUM_TESTS - visible)
+			first = NUM_TESTS - visible;
+		if (first < 0)
+			first = 0;
+		const int shown = (NUM_TESTS < visible) ? NUM_TESTS : visible;
+		Rect(lx - 10, ly - 6, W - 14, ly + shown * row + 4, COL_PANEL);
+		for (int k = 0; k < shown; k++)
 		{
-			const float y = ly + i * row;
+			const int i = first + k;
+			const float y = ly + k * row;
 			if (i == sel)
 				Rect(lx - 6, y - 1, W - 18, y + row - 1, COL_SEL);
 			snprintf(line, sizeof(line), "%d", i + 1);
-			Text(lx + 18 - TextWidth(0.6f, line), y, 0.6f, i == sel ? COL_ACCENT : COL_DIM, line);
-			Text(lx + 28, y, 0.6f, i == sel ? COL_TEXT : COL_DIM, g_tests[i].name);
+			Text(lx + 18 - TextWidth(0.62f, line), y, 0.62f, i == sel ? COL_ACCENT : COL_DIM, line);
+			Text(lx + 28, y, 0.62f, i == sel ? COL_TEXT : COL_DIM, g_tests[i].name);
 			if (i == sel && audio.playing)
 				Disc(W - 30, y + row * 0.5f - 1, 4.0f, (frame / 15) & 1 ? COL_GREEN : COL_ACCENT);
 		}
+		// scroll hints
+		if (first > 0)
+			gsKit_prim_triangle(gs, W - 30, ly - 4, W - 35, ly + 2, W - 25, ly + 2, 1, COL_DIM);
+		if (first + shown < NUM_TESTS)
+			gsKit_prim_triangle(gs, W - 30, ly + shown * row + 2, W - 35, ly + shown * row - 4, W - 25, ly + shown * row - 4, 1, COL_DIM);
 
 		// Details for the selected test
 		const struct TestDef* t = &g_tests[sel];

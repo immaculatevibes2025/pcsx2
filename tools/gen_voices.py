@@ -28,16 +28,18 @@ LABELS = [
     "Surround left, game mix B",
     "Surround right, game mix A",
     "Surround right, game mix B",
-    "Star Ocean 3, surround right",
-    "Star Ocean 3, surround left",
+    "Real game, surround right",
+    "Real game, surround left",
     "Circle sweep",
     "Subwoofer",
-    "Dialogue and surround effect",
+    "Dialogue and surround left effect",
+    "Dialogue and surround right effect",
     "Fast sweep",
-    "Quiet levels",
+    "Quiet levels, surround left",
+    "Quiet levels, surround right",
     "Ambience",
     # looped "dialogue" for the two-source test (must stay last)
-    "This is the dialogue. It should stay in the center speaker, while the noise plays behind you on the left.",
+    "This is the dialogue. It should stay in the center speaker, while the noise plays behind you.",
 ]
 
 RATE = 48000
