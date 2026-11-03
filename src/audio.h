@@ -27,6 +27,8 @@ struct AudioState
 	unsigned int pos; // samples into the current phase
 	unsigned int bursts_done;
 	float sweep_theta; // current sweep angle (degrees, 0..180)
+	unsigned int laps; // completed sweep laps
+	unsigned int dialogue_pos; // position in the looped dialogue (two-source test)
 	float lfe_phase;
 	float current_theta; // angle being played right now (for the display)
 	int playing;

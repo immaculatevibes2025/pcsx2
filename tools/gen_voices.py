@@ -30,7 +30,12 @@ LABELS = [
     "Surround right, game mix B",
     "Circle sweep",
     "Subwoofer",
+    "Dialogue and surround effect",
+    "Fast sweep",
+    "Quiet levels",
     "Ambience",
+    # looped "dialogue" for the two-source test (must stay last)
+    "This is the dialogue. It should stay in the center speaker, while the noise plays behind you on the left.",
 ]
 
 RATE = 48000

@@ -11,6 +11,8 @@
 #define PAUSE_SAMPLES (AUDIO_RATE * 4 / 10)
 #define FADE_SAMPLES (AUDIO_RATE / 100) // 10 ms fades so bursts don't click
 #define SWEEP_DEG_PER_SAMPLE (180.0f / (AUDIO_RATE * 12.0f)) // full circle in 12 s
+#define FAST_SWEEP_DEG_PER_SAMPLE (180.0f / (AUDIO_RATE * 1.5f)) // full circle in 1.5 s
+#define DIALOGUE_GAP (AUDIO_RATE / 2)
 
 #define NOISE_GAIN 0.25f // about -18 dBFS RMS pink noise
 #define VOICE_GAIN 0.9f
@@ -67,6 +69,8 @@ void Audio_Start(struct AudioState* a, const struct TestDef* test)
 	a->pos = 0;
 	a->bursts_done = 0;
 	a->sweep_theta = 0.0f;
+	a->laps = 0;
+	a->dialogue_pos = 0;
 	a->lfe_phase = 0.0f;
 	a->current_theta = test->theta;
 	a->playing = 1;
@@ -86,8 +90,8 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 		{
 			const struct TestDef* t = a->test;
 			// The spoken label comes from the test position too (the sweep announces from its start, Front Left;
-			// ambience announces from the centre)
-			float theta = (t->kind == KIND_NOISE || t->kind == KIND_LFE || t->kind == KIND_SWEEP) ? t->theta : DEG_C;
+			// ambience and the two-source test announce from the centre)
+			float theta = (t->kind == KIND_AMBIENCE || (t->kind == KIND_DUAL && a->phase == PHASE_VOICE)) ? DEG_C : t->theta;
 
 			switch (a->phase)
 			{
@@ -117,13 +121,16 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 
 				case PHASE_BURST:
 				{
-					if (t->kind == KIND_SWEEP)
+					if (t->kind == KIND_SWEEP || t->kind == KIND_FAST_SWEEP)
 					{
 						// continuous, never pauses
 						theta = a->sweep_theta;
-						a->sweep_theta += SWEEP_DEG_PER_SAMPLE;
+						a->sweep_theta += (t->kind == KIND_FAST_SWEEP) ? FAST_SWEEP_DEG_PER_SAMPLE : SWEEP_DEG_PER_SAMPLE;
 						if (a->sweep_theta >= 180.0f)
+						{
 							a->sweep_theta -= 180.0f;
+							a->laps++;
+						}
 						const float s = Pink(a, 0) * NOISE_GAIN * ((a->pos < FADE_SAMPLES) ? (float)a->pos / FADE_SAMPLES : 1.0f);
 						l = cosf(theta * PI / 180.0f) * s;
 						r = sinf(theta * PI / 180.0f) * s;
@@ -149,6 +156,11 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 							if (a->lfe_phase > 2.0f * PI)
 								a->lfe_phase -= 2.0f * PI;
 						}
+						else if (t->kind == KIND_LEVELS)
+						{
+							static const float levels[3] = {1.0f, 0.1f, 0.01f}; // 0, -20, -40 dB
+							s = Pink(a, 0) * NOISE_GAIN * levels[a->bursts_done % 3] * f;
+						}
 						else
 						{
 							s = Pink(a, 0) * NOISE_GAIN * f;
@@ -173,6 +185,20 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 						a->pos = 0;
 					}
 					break;
+			}
+
+			// Two-source test: dialogue in the centre runs continuously under the bursts
+			if (t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE))
+			{
+				const struct VoiceClip* v = &a->voices[VOICE_DIALOGUE];
+				if (a->dialogue_pos < v->count)
+				{
+					const float s = v->samples[a->dialogue_pos] / 32768.0f * VOICE_GAIN * 0.8f;
+					l += 0.70710678f * s;
+					r += 0.70710678f * s;
+				}
+				if (++a->dialogue_pos >= v->count + DIALOGUE_GAP)
+					a->dialogue_pos = 0;
 			}
 		}
 

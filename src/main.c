@@ -346,7 +346,7 @@ static float SpeakerGain(float az, float spk)
 
 static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, int frame)
 {
-	Rect(cx - rad - 30, cy - rad - 30, cx + rad + 30, cy + rad + 30, COL_ROOM);
+	Rect(cx - rad - 22, cy - rad - 22, cx + rad + 22, cy + rad + 22, COL_ROOM);
 	Ring(cx, cy, rad, COL_EDGE);
 	Ring(cx, cy, rad * 0.5f, COL_EDGE);
 
@@ -369,6 +369,9 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 			else if (t->kind != KIND_LFE)
 				on = SpeakerGain(az, s->az);
 		}
+		// Two-source test: the dialogue keeps the centre lit under the bursts
+		if (active && t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE))
+			on = fmaxf(on, SpeakerGain(0.0f, s->az));
 		if (on > 0.0f)
 			Disc(sx, sy, 22.0f + 6.0f * on, COL_GLOW);
 		Rect(sx - 13, sy - 13, sx + 13, sy + 13, on > 0.3f ? COL_SPK_ON : COL_SPK);
@@ -508,9 +511,11 @@ int main(void)
 		// Auto mode: three bursts (one lap for the sweep), then next test
 		if (autoplay && audio.playing)
 		{
-			const int done = (audio.test->kind == KIND_SWEEP) ?
-								 (audio.phase == PHASE_BURST && audio.sweep_theta > 179.0f) :
-								 (audio.bursts_done >= 3);
+			const enum TestKind k = audio.test->kind;
+			const int done = (k == KIND_SWEEP) ? (audio.laps >= 1) :
+							 (k == KIND_FAST_SWEEP) ? (audio.laps >= 3) :
+							 (k == KIND_LEVELS) ? (audio.bursts_done >= 6) :
+													 (audio.bursts_done >= 3);
 			if (done)
 			{
 				sel = (sel + 1) % NUM_TESTS;
@@ -537,11 +542,11 @@ int main(void)
 		Rect(0, 0, W, 44, COL_PANEL);
 		Text(20, 10, 1.0f, COL_TEXT, "Pro Logic II Surround Test for PS2");
 
-		const float rcx = 170, rcy = 250, rr = 120;
+		const float rcx = 168, rcy = 186, rr = 100;
 		DrawRoom(rcx, rcy, rr, &audio, frame);
 
 		// Test list
-		const float lx = 330, ly = 58, row = 18;
+		const float lx = 330, ly = 56, row = 19;
 		Rect(lx - 10, ly - 6, W - 14, ly + NUM_TESTS * row + 4, COL_PANEL);
 		for (int i = 0; i < NUM_TESTS; i++)
 		{
@@ -557,18 +562,24 @@ int main(void)
 
 		// Details for the selected test
 		const struct TestDef* t = &g_tests[sel];
-		const float dw = W - 14 - lx - 8;
-		float dy = ly + NUM_TESTS * row + 16;
-		Text(lx, dy, 0.6f, COL_ACCENT, "EXPECTED");
-		dy += 16;
-		dy += TextWrap(lx, dy, dw, 0.65f, COL_TEXT, t->expected) + 8;
-		Text(lx, dy, 0.6f, COL_ACCENT, "ENCODED AS");
-		dy += 16;
+		// Details sit under the room diagram (the list fills the right-hand side)
+		const float dx = 24, dw = 300;
+		float dy = rcy + rr + 32;
+		Text(dx, dy, 0.55f, COL_ACCENT, "EXPECTED");
+		if (audio.playing && audio.test == t && t->kind == KIND_LEVELS && audio.phase == PHASE_BURST)
+		{
+			static const char* const lv[3] = {"now 0 dB", "now -20 dB", "now -40 dB"};
+			Text(dx + 110, dy, 0.55f, COL_GREEN, lv[audio.bursts_done % 3]);
+		}
+		dy += 15;
+		dy += TextWrap(dx, dy, dw, 0.6f, COL_TEXT, t->expected) + 6;
+		Text(dx, dy, 0.55f, COL_ACCENT, "ENCODED AS");
+		dy += 15;
 		if (t->encoding)
 			snprintf(line, sizeof(line), "%s", t->encoding);
 		else
 			snprintf(line, sizeof(line), "Lt %+.3f    Rt %+.3f", cosf(t->theta * PI / 180.0f), sinf(t->theta * PI / 180.0f));
-		TextWrap(lx, dy, dw, 0.65f, COL_TEXT, line);
+		TextWrap(dx, dy, dw, 0.6f, COL_TEXT, line);
 
 		// Footer with PS2 button icons
 		Rect(0, H - 38, W, H, COL_PANEL);
