@@ -2,3 +2,4 @@
 *.elf
 *_irx.c
 src/voices.c
+src/font.c

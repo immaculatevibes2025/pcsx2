@@ -18,6 +18,7 @@
 #include <sbv_patches.h>
 #include <sifrpc.h>
 #include <stdio.h>
+#include <malloc.h>
 #include <string.h>
 
 extern unsigned char libsd_irx[];
@@ -53,16 +54,44 @@ extern const struct VoiceClip g_voices[];
 #define COL_GREEN RGBA(0x4c, 0xd1, 0x7a, 0x80)
 
 static GSGLOBAL* gs;
-static GSFONTM* font;
+static GSTEXTURE font_tex;
+
+extern const int g_font_tex_w, g_font_tex_h, g_font_cell_w, g_font_cell_h;
+extern const int g_font_ascent, g_font_first, g_font_last, g_font_cols;
+extern const unsigned char g_font_adv[];
+extern const unsigned char g_font_alpha[];
+
+// Everything is drawn from triangles: plain sprites did not show up (no background clear, no panels).
+static void Quad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, u64 c)
+{
+	gsKit_prim_triangle(gs, x1, y1, x2, y2, x3, y3, 1, c);
+	gsKit_prim_triangle(gs, x2, y2, x4, y4, x3, y3, 1, c);
+}
 
 static void Rect(float x1, float y1, float x2, float y2, u64 c)
 {
-	gsKit_prim_sprite(gs, x1, y1, x2, y2, 1, c);
+	Quad(x1, y1, x2, y1, x1, y2, x2, y2, c);
 }
 
-static void Text(float x, float y, float scale, u64 c, const char* s)
+// Thick line segment
+static void Bar(float x1, float y1, float x2, float y2, float w, u64 c)
 {
-	gsKit_fontm_print_scaled(gs, font, x, y, 2, scale, c, s);
+	float dx = x2 - x1, dy = y2 - y1;
+	const float len = sqrtf(dx * dx + dy * dy);
+	if (len <= 0.0f)
+		return;
+	const float nx = -dy / len * w * 0.5f, ny = dx / len * w * 0.5f;
+	Quad(x1 + nx, y1 + ny, x2 + nx, y2 + ny, x1 - nx, y1 - ny, x2 - nx, y2 - ny, c);
+}
+
+static void Arc(float cx, float cy, float r0, float r1, float a0, float a1, int seg, u64 c)
+{
+	for (int i = 0; i < seg; i++)
+	{
+		const float t0 = a0 + (a1 - a0) * i / seg, t1 = a0 + (a1 - a0) * (i + 1) / seg;
+		Quad(cx + r1 * cosf(t0), cy + r1 * sinf(t0), cx + r1 * cosf(t1), cy + r1 * sinf(t1), cx + r0 * cosf(t0),
+			cy + r0 * sinf(t0), cx + r0 * cosf(t1), cy + r0 * sinf(t1), c);
+	}
 }
 
 static void Disc(float cx, float cy, float rad, u64 c)
@@ -78,12 +107,194 @@ static void Disc(float cx, float cy, float rad, u64 c)
 
 static void Ring(float cx, float cy, float rad, u64 c)
 {
-	const int seg = 64;
-	for (int i = 0; i < seg; i++)
+	Arc(cx, cy, rad - 1.0f, rad + 1.0f, 0.0f, 2 * PI, 64, c);
+}
+
+static void RoundRect(float x1, float y1, float x2, float y2, float r, u64 c)
+{
+	Rect(x1 + r, y1, x2 - r, y2, c);
+	Rect(x1, y1 + r, x1 + r, y2 - r, c);
+	Rect(x2 - r, y1 + r, x2, y2 - r, c);
+	Arc(x1 + r, y1 + r, 0.0f, r, PI, 1.5f * PI, 6, c);
+	Arc(x2 - r, y1 + r, 0.0f, r, 1.5f * PI, 2.0f * PI, 6, c);
+	Arc(x1 + r, y2 - r, 0.0f, r, 0.5f * PI, PI, 6, c);
+	Arc(x2 - r, y2 - r, 0.0f, r, 0.0f, 0.5f * PI, 6, c);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Text (proportional font atlas generated at build time; scale 1.0 = 20 px)
+// ---------------------------------------------------------------------------------------------------------------
+
+static void FontInit(void)
+{
+	const int n = g_font_tex_w * g_font_tex_h;
+	u32* px = (u32*)memalign(128, n * 4);
+	for (int i = 0; i < n; i++)
+		px[i] = ((u32)g_font_alpha[i] << 24) | 0x00ffffffu;
+	font_tex.Width = g_font_tex_w;
+	font_tex.Height = g_font_tex_h;
+	font_tex.PSM = GS_PSM_CT32;
+	font_tex.Mem = px;
+	font_tex.Clut = NULL;
+	font_tex.Filter = GS_FILTER_LINEAR;
+	font_tex.Vram = gsKit_vram_alloc(gs, gsKit_texture_size(font_tex.Width, font_tex.Height, font_tex.PSM), GSKIT_ALLOC_USERBUFFER);
+	gsKit_texture_upload(gs, &font_tex);
+}
+
+static float TextWidth(float scale, const char* s)
+{
+	float w = 0.0f;
+	for (; *s; s++)
 	{
-		const float a0 = 2 * PI * i / seg, a1 = 2 * PI * (i + 1) / seg;
-		gsKit_prim_line(gs, cx + rad * cosf(a0), cy + rad * sinf(a0), cx + rad * cosf(a1), cy + rad * sinf(a1), 1, c);
+		const int ch = (unsigned char)*s;
+		if (ch >= g_font_first && ch <= g_font_last)
+			w += g_font_adv[ch - g_font_first] * scale;
 	}
+	return w;
+}
+
+static void Text(float x, float y, float scale, u64 c, const char* s)
+{
+	for (; *s; s++)
+	{
+		const int ch = (unsigned char)*s;
+		if (ch < g_font_first || ch > g_font_last)
+			continue;
+		const int i = ch - g_font_first;
+		if (ch != ' ')
+		{
+			const float u = (float)((i % g_font_cols) * g_font_cell_w), v = (float)((i / g_font_cols) * g_font_cell_h);
+			const float w = g_font_cell_w * scale, h = g_font_cell_h * scale;
+			gsKit_prim_quad_texture(gs, &font_tex, x, y, u, v, x + w, y, u + g_font_cell_w, v, x, y + h, u,
+				v + g_font_cell_h, x + w, y + h, u + g_font_cell_w, v + g_font_cell_h, 2, c);
+		}
+		x += g_font_adv[i] * scale;
+	}
+}
+
+// Word-wrapped text, returns the height used
+static float TextWrap(float x, float y, float max_w, float scale, u64 c, const char* s)
+{
+	char line[128];
+	const float lh = g_font_cell_h * scale;
+	float yy = y;
+	while (*s)
+	{
+		int len = 0, last_space = -1;
+		while (s[len] && len < (int)sizeof(line) - 1)
+		{
+			if (s[len] == ' ')
+				last_space = len;
+			memcpy(line, s, len + 1);
+			line[len + 1] = 0;
+			if (TextWidth(scale, line) > max_w && last_space > 0)
+			{
+				len = last_space;
+				break;
+			}
+			len++;
+		}
+		memcpy(line, s, len);
+		line[len] = 0;
+		Text(x, yy, scale, c, line);
+		yy += lh;
+		s += len;
+		while (*s == ' ')
+			s++;
+	}
+	return yy - y;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// PS2 controller button icons
+// ---------------------------------------------------------------------------------------------------------------
+
+#define COL_BTN RGBA(0x24, 0x28, 0x32, 0x80)
+#define COL_BTN_EDGE RGBA(0x3a, 0x40, 0x4e, 0x80)
+#define COL_CROSS RGBA(0x7c, 0xb2, 0xff, 0x80)
+#define COL_CIRCLE RGBA(0xff, 0x6b, 0x70, 0x80)
+#define COL_TRIANGLE RGBA(0x4f, 0xd6, 0xa6, 0x80)
+#define COL_SQUARE RGBA(0xf2, 0x8c, 0xd6, 0x80)
+
+enum Button
+{
+	BTN_CROSS,
+	BTN_CIRCLE,
+	BTN_TRIANGLE,
+	BTN_SQUARE,
+	BTN_START,
+	BTN_DPAD,
+};
+
+// Draws a button icon centred vertically on cy, starting at x. Returns its width.
+static float ButtonIcon(float x, float cy, enum Button b)
+{
+	const float r = 11.0f;
+	switch (b)
+	{
+		case BTN_CROSS:
+		case BTN_CIRCLE:
+		case BTN_TRIANGLE:
+		case BTN_SQUARE:
+		{
+			const float cx = x + r;
+			Disc(cx, cy, r + 1.5f, COL_BTN_EDGE);
+			Disc(cx, cy, r, COL_BTN);
+			if (b == BTN_CROSS)
+			{
+				Bar(cx - 5, cy - 5, cx + 5, cy + 5, 2.5f, COL_CROSS);
+				Bar(cx - 5, cy + 5, cx + 5, cy - 5, 2.5f, COL_CROSS);
+			}
+			else if (b == BTN_CIRCLE)
+			{
+				Arc(cx, cy, 4.2f, 6.6f, 0.0f, 2 * PI, 20, COL_CIRCLE);
+			}
+			else if (b == BTN_TRIANGLE)
+			{
+				Bar(cx, cy - 6, cx - 6, cy + 4.5f, 2.2f, COL_TRIANGLE);
+				Bar(cx, cy - 6, cx + 6, cy + 4.5f, 2.2f, COL_TRIANGLE);
+				Bar(cx - 6, cy + 4.5f, cx + 6, cy + 4.5f, 2.2f, COL_TRIANGLE);
+			}
+			else
+			{
+				Bar(cx - 5, cy - 5, cx + 5, cy - 5, 2.2f, COL_SQUARE);
+				Bar(cx - 5, cy + 5, cx + 5, cy + 5, 2.2f, COL_SQUARE);
+				Bar(cx - 5, cy - 6, cx - 5, cy + 6, 2.2f, COL_SQUARE);
+				Bar(cx + 5, cy - 6, cx + 5, cy + 6, 2.2f, COL_SQUARE);
+			}
+			return 2 * r;
+		}
+		case BTN_START:
+		{
+			const float w = TextWidth(0.55f, "START") + 14.0f;
+			RoundRect(x - 1, cy - 9, x + w + 1, cy + 9, 9.0f, COL_BTN_EDGE);
+			RoundRect(x, cy - 8, x + w, cy + 8, 8.0f, COL_BTN);
+			Text(x + 7, cy - g_font_cell_h * 0.55f * 0.5f, 0.55f, RGBA(0xc8, 0xcd, 0xd8, 0x80), "START");
+			return w;
+		}
+		case BTN_DPAD:
+		{
+			const float cx = x + 11, s = 4.0f, l = 11.0f;
+			Rect(cx - s - 1, cy - l - 1, cx + s + 1, cy + l + 1, COL_BTN_EDGE);
+			Rect(cx - l - 1, cy - s - 1, cx + l + 1, cy + s + 1, COL_BTN_EDGE);
+			Rect(cx - s, cy - l, cx + s, cy + l, COL_BTN);
+			Rect(cx - l, cy - s, cx + l, cy + s, COL_BTN);
+			gsKit_prim_triangle(gs, cx, cy - l + 2, cx - 2.5f, cy - l + 6, cx + 2.5f, cy - l + 6, 1, COL_DIM);
+			gsKit_prim_triangle(gs, cx, cy + l - 2, cx - 2.5f, cy + l - 6, cx + 2.5f, cy + l - 6, 1, COL_DIM);
+			gsKit_prim_triangle(gs, cx - l + 2, cy, cx - l + 6, cy - 2.5f, cx - l + 6, cy + 2.5f, 1, COL_DIM);
+			gsKit_prim_triangle(gs, cx + l - 2, cy, cx + l - 6, cy - 2.5f, cx + l - 6, cy + 2.5f, 1, COL_DIM);
+			return 22.0f;
+		}
+	}
+	return 0.0f;
+}
+
+// A simple person silhouette (head + shoulders) for the listening position
+static void Person(float cx, float cy, u64 c)
+{
+	Disc(cx, cy - 9, 6.5f, c);
+	Arc(cx, cy + 12, 0.0f, 12.0f, PI, 2.0f * PI, 12, c);
+	Rect(cx - 12, cy + 12, cx + 12, cy + 14, c);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -139,20 +350,20 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 		if (on > 0.0f)
 			Disc(sx, sy, 22.0f + 6.0f * on, COL_GLOW);
 		Rect(sx - 13, sy - 13, sx + 13, sy + 13, on > 0.3f ? COL_SPK_ON : COL_SPK);
-		Text(sx - 8 * (float)strlen(s->label) * 0.5f, sy - 6, 0.5f, COL_TEXT, s->label);
+		Text(sx - TextWidth(0.6f, s->label) * 0.5f, sy - g_font_cell_h * 0.6f * 0.5f, 0.6f, COL_TEXT, s->label);
 	}
 
-	// Subwoofer
+	// Subwoofer, in the room's front-right corner
+	const float swx = cx + rad + 8.0f, swy = cy - rad - 8.0f;
 	const int sub_on = sounding && t->kind == KIND_LFE;
 	if (sub_on)
-		Disc(cx + rad * 0.62f, cy - rad * 0.62f, 18.0f, COL_GLOW);
-	Rect(cx + rad * 0.62f - 11, cy - rad * 0.62f - 11, cx + rad * 0.62f + 11, cy - rad * 0.62f + 11,
+		Disc(swx, swy, 18.0f, COL_GLOW);
+	Rect(swx - 11, swy - 11, swx + 11, swy + 11,
 		sub_on ? COL_SPK_ON : COL_SPK);
-	Text(cx + rad * 0.62f - 8, cy - rad * 0.62f - 6, 0.5f, COL_TEXT, "SW");
+	Text(swx - TextWidth(0.5f, "SW") * 0.5f, swy - g_font_cell_h * 0.5f * 0.5f, 0.5f, COL_TEXT, "SW");
 
 	// Listener
-	Disc(cx, cy, 7.0f, COL_DIM);
-	Text(cx - 24, cy + 12, 0.45f, COL_DIM, "you");
+	Person(cx, cy, COL_DIM);
 
 	// Expected position marker
 	if (active && !spread && t->kind != KIND_LFE)
@@ -221,9 +432,7 @@ int main(void)
 	dmaKit_chan_init(DMA_CHANNEL_GIF);
 	gsKit_init_screen(gs);
 	gsKit_mode_switch(gs, GS_ONESHOT);
-	font = gsKit_init_fontm();
-	gsKit_fontm_upload(gs, font);
-	font->Spacing = 0.95f;
+	FontInit();
 
 	// Audio
 	audsrv_init();
@@ -295,45 +504,63 @@ int main(void)
 
 		// ---- draw ----
 		gsKit_clear(gs, COL_BG);
+		Rect(0, 0, W, H, COL_BG); // the actual clear (see Quad)
 
 		Rect(0, 0, W, 44, COL_PANEL);
-		Text(20, 12, 0.75f, COL_TEXT, "Pro Logic II Surround Test");
-		Text(W - 150, 16, 0.5f, COL_DIM, "PS2 / PCSX2");
+		Text(20, 10, 1.0f, COL_TEXT, "Pro Logic II Surround Test for PS2");
 
 		const float rcx = 170, rcy = 250, rr = 120;
 		DrawRoom(rcx, rcy, rr, &audio, frame);
 
 		// Test list
-		const float lx = 330, ly = 62;
-		Rect(lx - 10, ly - 8, W - 14, ly + NUM_TESTS * 17 + 4, COL_PANEL);
+		const float lx = 330, ly = 58, row = 18;
+		Rect(lx - 10, ly - 6, W - 14, ly + NUM_TESTS * row + 4, COL_PANEL);
 		for (int i = 0; i < NUM_TESTS; i++)
 		{
-			const float y = ly + i * 17;
+			const float y = ly + i * row;
 			if (i == sel)
-				Rect(lx - 6, y - 2, W - 18, y + 15, COL_SEL);
-			snprintf(line, sizeof(line), "%2d  %s", i + 1, g_tests[i].name);
-			Text(lx, y, 0.48f, i == sel ? COL_TEXT : COL_DIM, line);
+				Rect(lx - 6, y - 1, W - 18, y + row - 1, COL_SEL);
+			snprintf(line, sizeof(line), "%d", i + 1);
+			Text(lx + 18 - TextWidth(0.65f, line), y, 0.65f, i == sel ? COL_ACCENT : COL_DIM, line);
+			Text(lx + 28, y, 0.65f, i == sel ? COL_TEXT : COL_DIM, g_tests[i].name);
 			if (i == sel && audio.playing)
-				Disc(W - 30, y + 6, 4.0f, (frame / 15) & 1 ? COL_GREEN : COL_ACCENT);
+				Disc(W - 30, y + row * 0.5f - 1, 4.0f, (frame / 15) & 1 ? COL_GREEN : COL_ACCENT);
 		}
 
 		// Details for the selected test
 		const struct TestDef* t = &g_tests[sel];
-		const float dy = ly + NUM_TESTS * 17 + 18;
-		Text(lx, dy, 0.45f, COL_ACCENT, "EXPECTED");
-		Text(lx, dy + 16, 0.45f, COL_TEXT, t->expected);
-		Text(lx, dy + 38, 0.45f, COL_ACCENT, "ENCODED AS");
+		const float dw = W - 14 - lx - 8;
+		float dy = ly + NUM_TESTS * row + 16;
+		Text(lx, dy, 0.6f, COL_ACCENT, "EXPECTED");
+		dy += 16;
+		dy += TextWrap(lx, dy, dw, 0.65f, COL_TEXT, t->expected) + 8;
+		Text(lx, dy, 0.6f, COL_ACCENT, "ENCODED AS");
+		dy += 16;
 		if (t->encoding)
 			snprintf(line, sizeof(line), "%s", t->encoding);
 		else
-			snprintf(line, sizeof(line), "Lt %+.3f   Rt %+.3f", cosf(t->theta * PI / 180.0f), sinf(t->theta * PI / 180.0f));
-		Text(lx, dy + 54, 0.45f, COL_TEXT, line);
+			snprintf(line, sizeof(line), "Lt %+.3f    Rt %+.3f", cosf(t->theta * PI / 180.0f), sinf(t->theta * PI / 180.0f));
+		TextWrap(lx, dy, dw, 0.65f, COL_TEXT, line);
 
-		// Footer
-		Rect(0, H - 34, W, H, COL_PANEL);
-		Text(20, H - 25, 0.45f, COL_DIM, "X play   O stop   START auto-cycle   D-pad select");
-		if (autoplay)
-			Text(W - 110, H - 25, 0.45f, COL_GREEN, "AUTO");
+		// Footer with PS2 button icons
+		Rect(0, H - 38, W, H, COL_PANEL);
+		{
+			const float fy = H - 19, ts = 0.65f, ty = fy - g_font_cell_h * ts * 0.5f;
+			float x = 20;
+			x += ButtonIcon(x, fy, BTN_CROSS) + 6;
+			Text(x, ty, ts, COL_TEXT, "Play");
+			x += TextWidth(ts, "Play") + 18;
+			x += ButtonIcon(x, fy, BTN_CIRCLE) + 6;
+			Text(x, ty, ts, COL_TEXT, "Stop");
+			x += TextWidth(ts, "Stop") + 18;
+			x += ButtonIcon(x, fy, BTN_START) + 6;
+			Text(x, ty, ts, COL_TEXT, "Auto-cycle");
+			x += TextWidth(ts, "Auto-cycle") + 18;
+			x += ButtonIcon(x, fy, BTN_DPAD) + 6;
+			Text(x, ty, ts, COL_TEXT, "Select");
+			if (autoplay)
+				Text(W - 20 - TextWidth(ts, "AUTO"), ty, ts, COL_GREEN, "AUTO");
+		}
 
 		gsKit_queue_exec(gs);
 		gsKit_sync_flip(gs);

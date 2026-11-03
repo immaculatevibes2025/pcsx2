@@ -5,16 +5,48 @@ on:
   workflow_dispatch:
 
 jobs:
+  assets:
+    # Voice clips (Piper neural TTS, female US English voice) and the font atlas
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Piper and Pillow
+        run: pip install piper-tts==1.2.0 pillow
+      - name: Download voice
+        run: |
+          mkdir -p voice
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high
+          curl -sSfL -o voice/en_US-lessac-high.onnx $base/en_US-lessac-high.onnx
+          curl -sSfL -o voice/en_US-lessac-high.onnx.json $base/en_US-lessac-high.onnx.json
+      - name: Generate voices and font
+        run: |
+          PIPER_MODEL=voice/en_US-lessac-high.onnx python3 tools/gen_voices.py src/voices.c
+          python3 tools/gen_font.py src/font.c /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf 20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated
+          path: |
+            src/voices.c
+            src/font.c
+
   build:
+    needs: assets
     runs-on: ubuntu-latest
     container: ps2dev/ps2dev:latest
     steps:
-      - name: Install build tools and espeak-ng
-        run: apk add --no-cache make python3 espeak-ng git
+      - name: Install build tools
+        run: apk add --no-cache make python3 git
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+          path: src
       - name: Build
         run: |
-          rm -f src/voices.c
+          touch src/voices.c src/font.c
           make
           ls -la surround-test.elf
       - uses: actions/upload-artifact@v4
