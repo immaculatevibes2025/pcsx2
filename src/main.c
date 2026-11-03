@@ -130,7 +130,7 @@ static void FontInit(void)
 	const int n = g_font_tex_w * g_font_tex_h;
 	u32* px = (u32*)memalign(128, n * 4);
 	for (int i = 0; i < n; i++)
-		px[i] = ((u32)g_font_alpha[i] << 24) | 0x00ffffffu;
+		px[i] = g_font_alpha[i] ? (((u32)g_font_alpha[i] << 24) | 0x00ffffffu) : 0u;
 	font_tex.Width = g_font_tex_w;
 	font_tex.Height = g_font_tex_h;
 	font_tex.PSM = GS_PSM_CT32;
@@ -164,9 +164,10 @@ static void Text(float x, float y, float scale, u64 c, const char* s)
 		if (ch != ' ')
 		{
 			const float u = (float)((i % g_font_cols) * g_font_cell_w), v = (float)((i / g_font_cols) * g_font_cell_h);
-			const float w = g_font_cell_w * scale, h = g_font_cell_h * scale;
-			gsKit_prim_quad_texture(gs, &font_tex, x, y, u, v, x + w, y, u + g_font_cell_w, v, x, y + h, u,
-				v + g_font_cell_h, x + w, y + h, u + g_font_cell_w, v + g_font_cell_h, 2, c);
+			const float gw = (float)(g_font_adv[i] + 2);
+			const float w = gw * scale, h = g_font_cell_h * scale;
+			gsKit_prim_quad_texture(gs, &font_tex, x, y, u, v, x + w, y, u + gw, v, x, y + h, u,
+				v + g_font_cell_h, x + w, y + h, u + gw, v + g_font_cell_h, 2, c);
 		}
 		x += g_font_adv[i] * scale;
 	}
@@ -432,6 +433,7 @@ int main(void)
 	dmaKit_chan_init(DMA_CHANNEL_GIF);
 	gsKit_init_screen(gs);
 	gsKit_mode_switch(gs, GS_ONESHOT);
+	gs->PrimAlphaEnable = GS_SETTING_ON;
 	FontInit();
 
 	// Audio
@@ -504,6 +506,11 @@ int main(void)
 
 		// ---- draw ----
 		gsKit_clear(gs, COL_BG);
+		// Blending state is (re)queued every frame: in one-shot mode the queue is rebuilt each frame, and the
+		// clear changes it. Without this, translucent shapes drew solid and every glyph was an opaque box.
+		gs->PrimAlphaEnable = GS_SETTING_ON;
+		gsKit_set_test(gs, GS_ATEST_OFF);
+		gsKit_set_primalpha(gs, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 		Rect(0, 0, W, H, COL_BG); // the actual clear (see Quad)
 
 		Rect(0, 0, W, 44, COL_PANEL);
