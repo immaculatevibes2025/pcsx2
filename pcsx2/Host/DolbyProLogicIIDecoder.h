@@ -80,6 +80,7 @@ public:
 		m_fast_coef = Coef(8.0f);
 		m_gain_coef = Coef(5.0f);
 		m_balance_coef = Coef(4000.0f);
+		m_release_coef = Coef(150.0f);
 		m_autobalance = (settings.mode != Mode::Music);
 
 		const bool music = (settings.mode == Mode::Music);
@@ -121,6 +122,7 @@ public:
 		std::fill(m_delay[0].begin(), m_delay[0].end(), 0.0f);
 		std::fill(m_delay[1].begin(), m_delay[1].end(), 0.0f);
 		m_delay_pos = 0;
+		m_limit_gain = 1.0f;
 	}
 
 	// in: interleaved stereo, out: interleaved 6 channels (FL, FC, FR, RL, RR, LFE)
@@ -258,13 +260,24 @@ public:
 			m_delay[1][m_delay_pos] = rs;
 			m_delay_pos = (m_delay_pos + 1 == m_delay_len) ? 0 : (m_delay_pos + 1);
 
+			// Peak limiter, one gain for all six channels so the image does not shift. Steering can add a little
+			// gain on loud, strongly steered passages (up to ~1.4x full scale), which would otherwise clip.
+			// Instant attack, 150 ms release, threshold just under full scale; inaudible below it.
+			const float peak = std::max({std::abs(fl), std::abs(fc), std::abs(fr), std::abs(ls_d), std::abs(rs_d), std::abs(lfe)});
+			const float limit_target = (peak > LIMIT_THRESHOLD) ? (LIMIT_THRESHOLD / peak) : 1.0f;
+			if (limit_target < m_limit_gain)
+				m_limit_gain = limit_target;
+			else
+				m_limit_gain += m_release_coef * (limit_target - m_limit_gain);
+			const float g = m_limit_gain;
+
 			float* o = &out[i * NUM_OUTPUT_CHANNELS];
-			o[0] = fl;
-			o[1] = fc;
-			o[2] = fr;
-			o[3] = ls_d;
-			o[4] = rs_d;
-			o[5] = lfe;
+			o[0] = fl * g;
+			o[1] = fc * g;
+			o[2] = fr * g;
+			o[3] = ls_d * g;
+			o[4] = rs_d * g;
+			o[5] = lfe * g;
 		}
 	}
 
@@ -380,4 +393,8 @@ private:
 
 	std::vector<float> m_delay[2];
 	unsigned m_delay_len = 1, m_delay_pos = 0;
+
+	static constexpr float LIMIT_THRESHOLD = 0.97f;
+	float m_limit_gain = 1.0f;
+	float m_release_coef = 0.0f;
 };
