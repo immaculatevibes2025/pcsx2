@@ -116,6 +116,7 @@ public:
 		m_power = {};
 		m_balance_conf = 0.0f;
 		m_ax = m_ay = 0.0f;
+		m_audible = false;
 		m_w = {};
 		std::fill(m_delay[0].begin(), m_delay[0].end(), 0.0f);
 		std::fill(m_delay[1].begin(), m_delay[1].end(), 0.0f);
@@ -156,7 +157,7 @@ public:
 			// Autobalance: long-term (4 s) level of each input, corrects up to +/-2 dB of constant offset.
 			// It only learns from diffuse, unsteered audio (ambience, music beds), so a deliberately one-sided
 			// source such as a sustained rear-left effect is never "corrected" towards the middle.
-			if (m_autobalance)
+			if (m_autobalance && m_audible)
 			{
 				const float diffuse = std::max(0.0f, 1.0f - 2.0f * std::sqrt(m_ax * m_ax + m_ay * m_ay));
 				const float k = m_balance_coef * diffuse * diffuse;
@@ -176,15 +177,21 @@ public:
 			const std::array<float, 3> sq = {cl * cl, cr * cr, cl * cr};
 			for (int k = 0; k < 3; k++)
 				m_fast[k] += m_fast_coef * (sq[k] - m_fast[k]);
+			// Below about -70 dBFS there is nothing meaningful to steer on (silence, or a filter's decaying tail), so
+			// hold the current steering instead of letting it drift towards "diffuse" in every quiet gap.
 			const float tr = m_fast[0] + m_fast[1];
-			const float fx = (tr > 1e-12f) ? (m_fast[0] - m_fast[1]) / tr : 0.0f;
-			const float fy = (tr > 1e-12f) ? (2.0f * m_fast[2]) / tr : 0.0f;
+			m_audible = (tr > SILENCE_POWER);
+			if (m_audible)
+			{
+				const float fx = (m_fast[0] - m_fast[1]) / tr;
+				const float fy = (2.0f * m_fast[2]) / tr;
 
-			// Each axis follows the fast measurement with its own continuously variable speed: slow (150 ms) for
-			// small deviations, which averages out noise in a steady soundfield, rising to fast (8 ms) as the
-			// deviation grows, so moving sources and transients are tracked without lag.
-			m_ax += AdaptiveCoef(fx - m_ax) * (fx - m_ax);
-			m_ay += AdaptiveCoef(fy - m_ay) * (fy - m_ay);
+				// Each axis follows the fast measurement with its own continuously variable speed: slow (150 ms)
+				// for small deviations, which averages out noise in a steady soundfield, rising to fast (8 ms) as
+				// the deviation grows, so moving sources and transients are tracked without lag.
+				m_ax += AdaptiveCoef(fx - m_ax) * (fx - m_ax);
+				m_ay += AdaptiveCoef(fy - m_ay) * (fy - m_ay);
+			}
 			const float dom = std::min(1.0f, std::sqrt(m_ax * m_ax + m_ay * m_ay));
 
 			// Direction as an angle in [0, 180): 0 = L, 45 = C, 90 = R, ~125 = RR, 135 = rear centre, ~145 = RL, 180 = L.
@@ -366,6 +373,9 @@ private:
 	std::array<float, 2> m_power = {}; // long-term level for autobalance
 	float m_balance_conf = 0.0f;
 	float m_ax = 0.0f, m_ay = 0.0f; // adaptive steering axes
+	bool m_audible = false; // previous sample's control signal was above the silence floor
+
+	static constexpr float SILENCE_POWER = 1e-7f; // about -70 dBFS
 	std::array<float, 13> m_w = {};
 
 	std::vector<float> m_delay[2];
