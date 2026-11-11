@@ -257,6 +257,7 @@ set(pcsx2SPU2Sources
 	SPU2/ADSR.cpp
 	SPU2/Debug.cpp
 	SPU2/Dma.cpp
+	SPU2/BitstreamDecoder.cpp
 	SPU2/spu2.cpp
 	SPU2/ReadInput.cpp
 	SPU2/RegTable.cpp
@@ -277,6 +278,7 @@ set(pcsx2SPU2Headers
 	SPU2/defs.h
 	SPU2/Dma.h
 	SPU2/DPL2Games.h
+	SPU2/BitstreamDecoder.h
 	SPU2/interpolate_table.h
 	SPU2/spu2.h
 	SPU2/regs.h

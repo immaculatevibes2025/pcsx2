@@ -7,6 +7,7 @@
 #include "SPU2/Dma.h"
 #include "Host/AudioStream.h"
 #include "SPU2/DPL2Games.h"
+#include "SPU2/BitstreamDecoder.h"
 #include "Host.h"
 #include "GS/GSCapture.h"
 #include "MTGS.h"
@@ -313,6 +314,7 @@ bool SPU2::Open()
 	lClocks = psxRegs.cycle;
 
 	InternalReset(false);
+	BitstreamDecoder::Reset();
 
 	CreateOutputStream();
 #ifdef PCSX2_DEVBUILD
@@ -327,6 +329,7 @@ void SPU2::Close()
 	FileLog("[%10d] SPU2 Close\n", Cycles);
 
 	s_output_stream.reset();
+	BitstreamDecoder::Reset();
 
 #ifdef PCSX2_DEVBUILD
 	WaveDump::Close();
@@ -543,7 +546,22 @@ __forceinline void spu2Output(StereoOut32 out)
 	{
 		s_current_chunk_pos = 0;
 
-		s_output_stream->WriteChunk(s_current_chunk.data());
+		// Decoded Dolby Digital / DTS from the S/PDIF bitstream replaces the (muted) mix while it is playing.
+		// A little is buffered first so the decoder's bursty output (one frame = 512-1536 samples) plays smoothly.
+		static bool s_discrete_active = false;
+		static std::array<float, AudioStream::CHUNK_SIZE * BitstreamDecoder::NUM_CHANNELS> s_discrete_chunk;
+		const u32 avail = BitstreamDecoder::GetAvailableFrames();
+		if (!s_discrete_active && avail >= 2048)
+			s_discrete_active = true;
+		if (s_discrete_active && BitstreamDecoder::PopFrames(s_discrete_chunk.data(), AudioStream::CHUNK_SIZE))
+		{
+			s_output_stream->WriteChunkDiscrete(s_discrete_chunk.data());
+		}
+		else
+		{
+			s_discrete_active = false;
+			s_output_stream->WriteChunk(s_current_chunk.data());
+		}
 
 		if (SPU2::IsAudioCaptureActive()) [[unlikely]]
 			GSCapture::DeliverAudioPacket(s_current_chunk.data());

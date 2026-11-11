@@ -79,6 +79,10 @@ public:
 
 	void WriteChunk(const SampleType* chunk);
 
+	// One chunk of discrete 5.1 (FL, FC, FR, RL, RR, LFE), from decoded Dolby Digital / DTS. Played directly in the
+	// Pro Logic II modes (6 channels); other modes get a stereo downmix.
+	void WriteChunkDiscrete(const SampleType* chunk6);
+
 	void BeginWrite(SampleType** buffer_ptr, u32* num_frames);
 	void WriteFrame(const SampleType* frame);
 	void EndWrite(u32 num_frames);

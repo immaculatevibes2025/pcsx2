@@ -6,6 +6,7 @@
 #include "SPU2/defs.h"
 #include "SPU2/spu2.h"
 #include "SPU2/interpolate_table.h"
+#include "SPU2/BitstreamDecoder.h"
 
 #include <algorithm>
 
@@ -554,13 +555,16 @@ static __forceinline StereoOut32 MixCore(const uint coreidx, const VoiceMixSet& 
 void spu2Mix()
 {
 	// Note: Playmode 4 is SPDIF, which overrides other inputs.
+	// SPDIF is on Core 0. In the bypass modes the input words are an S/PDIF stream (IEC 61937 bursts of Dolby
+	// Digital or DTS for in-game DTS and Dolby Digital FMVs). Games still expect the ADMA stream to be read, so it is
+	// read as before, and the raw words also go to the bitstream decoder.
+	const StereoOut32 core0_input = Cores[0].ReadInput();
+	if (PlayMode & 6)
+		BitstreamDecoder::Feed(static_cast<s16>(core0_input.Left), static_cast<s16>(core0_input.Right), PlayMode);
+
 	StereoOut32 InputData[2] =
 		{
-			// SPDIF is on Core 0:
-			// Fixme:
-			// 1. We do not have an AC3 decoder for the bitstream.
-			// 2. Games usually provide a normal ADMA stream as well and want to see it getting read!
-			/*(PlayMode&4) ? StereoOut32::Empty : */ ApplyVolume(Cores[0].ReadInput(), Cores[0].InpVol),
+			ApplyVolume(core0_input, Cores[0].InpVol),
 
 			// CDDA is on Core 1:
 			(PlayMode & 8) ? StereoOut32::Empty : ApplyVolume(Cores[1].ReadInput(), Cores[1].InpVol)};

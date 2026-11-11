@@ -584,6 +584,27 @@ void AudioStream::EndWrite(u32 num_frames)
 	WriteChunk(m_staging_buffer.get());
 }
 
+void AudioStream::WriteChunkDiscrete(const SampleType* chunk6)
+{
+	if (m_dpl2_decoder)
+	{
+		// Same channel layout as the PLII decoder output: bypass the matrix decoder entirely
+		std::memcpy(m_dpl2_output.get(), chunk6, CHUNK_SIZE * 6 * sizeof(SampleType));
+		StretchWriteBlock(m_dpl2_output.get());
+		return;
+	}
+
+	// Stereo downmix (ITU: centre and surrounds at -3 dB, LFE dropped) for the other modes
+	std::array<SampleType, CHUNK_SIZE * NUM_INPUT_CHANNELS> stereo;
+	for (u32 i = 0; i < CHUNK_SIZE; i++)
+	{
+		const SampleType* f = &chunk6[i * 6];
+		stereo[i * 2 + 0] = std::clamp(f[0] + 0.7071f * (f[1] + f[3]), -1.0f, 1.0f);
+		stereo[i * 2 + 1] = std::clamp(f[2] + 0.7071f * (f[1] + f[4]), -1.0f, 1.0f);
+	}
+	WriteChunk(stereo.data());
+}
+
 void AudioStream::WriteChunk(const SampleType* chunk)
 {
 	if (!IsExpansionEnabled() && !IsStretchEnabled())

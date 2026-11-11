@@ -270,7 +270,8 @@ rem --enable-small removes the display names of codecs, so instead we specify op
   --enable-encoder=h264_amf,hevc_amf,av1_amf ^
   --enable-encoder=h264_vulkan,hevc_vulkan,av1_vulkan ^
   --enable-encoder=h264_mf,hevc_mf,av1_mf ^
-  --enable-parser=hevc ^
+  --enable-parser=hevc,ac3,dca ^
+  --enable-decoder=ac3,dca ^
   --enable-muxer=avi,matroska,mov,mp3,mp4,wav ^
   --enable-protocol=file || goto error
 !MAKE_EXE! -j%NUMBER_OF_PROCESSORS% || goto error

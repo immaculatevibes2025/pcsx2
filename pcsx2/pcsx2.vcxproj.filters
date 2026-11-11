@@ -1244,6 +1244,9 @@
     <ClCompile Include="SPU2\Dma.cpp">
       <Filter>System\Ps2\SPU2</Filter>
     </ClCompile>
+    <ClCompile Include="SPU2\BitstreamDecoder.cpp">
+      <Filter>System\Ps2\SPU2</Filter>
+    </ClCompile>
     <ClCompile Include="GSDumpReplayer.cpp">
       <Filter>Tools</Filter>
     </ClCompile>
@@ -2176,6 +2179,9 @@
       <Filter>System\Ps2\SPU2</Filter>
     </ClInclude>
     <ClInclude Include="SPU2\DPL2Games.h">
+      <Filter>System\Ps2\SPU2</Filter>
+    </ClInclude>
+    <ClInclude Include="SPU2\BitstreamDecoder.h">
       <Filter>System\Ps2\SPU2</Filter>
     </ClInclude>
     <ClInclude Include="GS\Renderers\HW\GSHwHack.h">
