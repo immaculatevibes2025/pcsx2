@@ -40,6 +40,13 @@ LABELS = [
     "Interpolation, treble sweep",
     "Interpolation, noise",
     "Ambience",
+    "DTS, front left",
+    "DTS, center",
+    "DTS, front right",
+    "DTS, surround right",
+    "DTS, surround left",
+    "DTS, subwoofer",
+    "DTS, dialogue and surround left",
     # looped "dialogue" for the two-source test (must stay last)
     "This is the dialogue. It should stay in the center speaker, while the noise plays behind you.",
 ]

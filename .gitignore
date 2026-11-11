@@ -4,3 +4,7 @@
 src/voices.c
 src/font.c
 src/vags.c
+src/dts_clips.c
+tools/__pycache__/
+*.irx
+dtsplay_irx.c

@@ -6,6 +6,7 @@
 
 #include "audio.h"
 #include "tests.h"
+#include "dts.h"
 
 #include <audsrv.h>
 #include <dmaKit.h>
@@ -27,6 +28,8 @@ extern unsigned char audsrv_irx[];
 extern unsigned int size_audsrv_irx;
 extern unsigned char sio2man_irx[];
 extern unsigned int size_sio2man_irx;
+extern unsigned char dtsplay_irx[];
+extern unsigned int size_dtsplay_irx;
 extern unsigned char padman_irx[];
 extern unsigned int size_padman_irx;
 
@@ -356,9 +359,10 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 
 	const struct TestDef* t = a->test;
 	const int active = a->playing && t;
-	const int sounding = active && (a->phase == PHASE_BURST || a->phase == PHASE_VOICE);
+	const int dts = active && t->kind == KIND_DTS;
+	const int sounding = active && (dts || a->phase == PHASE_BURST || a->phase == PHASE_VOICE);
 	const int spread = active && t->kind == KIND_AMBIENCE;
-	const float az = active ? Audio_ThetaToAzimuth(a->current_theta) : 0.0f;
+	const float az = active ? Audio_ThetaToAzimuth(t->kind == KIND_DTS ? t->theta : a->current_theta) : 0.0f;
 
 	for (unsigned i = 0; i < sizeof(g_speakers) / sizeof(g_speakers[0]); i++)
 	{
@@ -371,10 +375,10 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 			if (spread)
 				on = 0.5f;
 			else if (t->kind != KIND_LFE)
-				on = SpeakerGain(az, s->az);
+				on = SpeakerGain(dts ? Audio_ThetaToAzimuth(t->theta) : az, s->az);
 		}
 		// Two-source test: the dialogue keeps the centre lit under the bursts
-		if (active && t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE))
+		if ((active && t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE)) || (dts && t->clip == DTS_CLIP_DUAL))
 			on = fmaxf(on, SpeakerGain(0.0f, s->az));
 		if (on > 0.0f)
 			Disc(sx, sy, 22.0f + 6.0f * on, COL_GLOW);
@@ -384,7 +388,7 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 
 	// Subwoofer, in the room's front-right corner
 	const float swx = cx + rad + 8.0f, swy = cy - rad - 8.0f;
-	const int sub_on = sounding && t->kind == KIND_LFE;
+	const int sub_on = sounding && (t->kind == KIND_LFE || (dts && t->clip == DTS_CLIP_SUB));
 	if (sub_on)
 		Disc(swx, swy, 18.0f, COL_GLOW);
 	Rect(swx - 11, swy - 11, swx + 11, swy + 11,
@@ -446,6 +450,7 @@ static void LoadModules(void)
 	SifExecModuleBuffer(audsrv_irx, size_audsrv_irx, 0, NULL, &ret);
 	SifExecModuleBuffer(sio2man_irx, size_sio2man_irx, 0, NULL, &ret);
 	SifExecModuleBuffer(padman_irx, size_padman_irx, 0, NULL, &ret);
+	SifExecModuleBuffer(dtsplay_irx, size_dtsplay_irx, 0, NULL, &ret);
 }
 
 int main(void)
@@ -479,6 +484,8 @@ int main(void)
 	static short chunk[AUDIO_CHUNK * 2] __attribute__((aligned(64)));
 	struct AudioState audio;
 	Audio_Init(&audio, g_voices);
+	Dts_Init();
+	int dts_frames = 0;
 
 	// Pad
 	padInit(0);
@@ -550,6 +557,13 @@ int main(void)
 			}
 		}
 
+		// DTS tests: the IOP module loops the clip in S/PDIF bitstream mode while the test plays
+		{
+			const int want = (audio.playing && audio.test->kind == KIND_DTS) ? audio.test->clip : -1;
+			Dts_Play(want);
+			dts_frames = want >= 0 ? dts_frames + 1 : 0;
+		}
+
 		// Auto mode: three bursts (one lap for the sweep), then next test
 		if (autoplay && audio.playing)
 		{
@@ -558,6 +572,7 @@ int main(void)
 							 (k == KIND_FAST_SWEEP) ? (audio.laps >= 3) :
 							 (k == KIND_LEVELS) ? (audio.bursts_done >= 6) :
 							 (k == KIND_VOICE_SWEEP || k == KIND_VOICE_NOISE) ? (audio.bursts_done >= 1) :
+							 (k == KIND_DTS) ? (dts_frames >= 8 * 60) :
 													 (audio.bursts_done >= 3);
 			if (done)
 			{

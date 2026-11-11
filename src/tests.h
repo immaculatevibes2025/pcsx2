@@ -25,6 +25,7 @@ enum TestKind
 	KIND_LEVELS, // bursts at theta at 0, -20 and -40 dB
 	KIND_VOICE_SWEEP, // 22 kHz ADPCM sine sweep played on an SPU2 voice (shows the interpolation setting)
 	KIND_VOICE_NOISE, // 22 kHz ADPCM white noise played on an SPU2 voice
+	KIND_DTS, // discrete 5.1 DTS clip streamed as an S/PDIF bitstream (irx/dtsplay); needs a DTS decoder
 };
 
 struct TestDef
@@ -35,7 +36,11 @@ struct TestDef
 	float theta;
 	enum TestKind kind;
 	int voice; // index into the spoken label table
+	int clip; // KIND_DTS: index into g_dts_clips
 };
+
+#define DTS_CLIP_SUB 5
+#define DTS_CLIP_DUAL 6
 
 #define DEG_FL 0.0f
 #define DEG_C 45.0f
@@ -69,6 +74,13 @@ static const struct TestDef g_tests[] = {
 	{"Interpolation: Treble Sweep", "Level all the way up with Catmull-Rom; fades in the top octave with Gaussian (PS2 accurate)", "PS2 voice, 22,050 Hz ADPCM sweep 100 Hz-10.5 kHz, Center", DEG_C, KIND_VOICE_SWEEP, 21},
 	{"Interpolation: Noise", "Brighter with Catmull-Rom, softer with Gaussian", "PS2 voice, 22,050 Hz ADPCM white noise, Center", DEG_C, KIND_VOICE_NOISE, 22},
 	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 23},
+	{"DTS: Front Left", "Decoder shows DTS 5.1; Front Left speaker only", "DTS 5.1 bitstream, discrete Front Left", DEG_FL, KIND_DTS, 24, 0},
+	{"DTS: Center", "Decoder shows DTS 5.1; Center speaker only", "DTS 5.1 bitstream, discrete Center", DEG_C, KIND_DTS, 25, 1},
+	{"DTS: Front Right", "Decoder shows DTS 5.1; Front Right speaker only", "DTS 5.1 bitstream, discrete Front Right", DEG_FR, KIND_DTS, 26, 2},
+	{"DTS: Surround Right", "Decoder shows DTS 5.1; Surround Right speaker only", "DTS 5.1 bitstream, discrete Surround Right", DEG_SR, KIND_DTS, 27, 3},
+	{"DTS: Surround Left", "Decoder shows DTS 5.1; Surround Left speaker only", "DTS 5.1 bitstream, discrete Surround Left", DEG_SL, KIND_DTS, 28, 4},
+	{"DTS: Subwoofer", "Voice in Center, 40 Hz tone from the subwoofer (LFE channel)", "DTS 5.1 bitstream, 40 Hz on LFE", DEG_C, KIND_DTS, 29, DTS_CLIP_SUB},
+	{"DTS: Dialogue + Surround Left", "Voice in Center, noise in Surround Left, both at once", "DTS 5.1 bitstream, Center + Surround Left", DEG_SL, KIND_DTS, 30, DTS_CLIP_DUAL},
 };
 
 // Spoken line looped as "dialogue" in the two-source test (index after the test labels)

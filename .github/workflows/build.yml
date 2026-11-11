@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Install Piper and Pillow
         run: pip install piper-tts==1.2.0 pillow
       - name: Download voice
@@ -26,6 +28,7 @@ jobs:
           PIPER_MODEL=voice/en_US-lessac-high.onnx python3 tools/gen_voices.py src/voices.c
           python3 tools/gen_font.py src/font.c /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf 20
           python3 tools/gen_vag.py src/vags.c
+          PIPER_MODEL=voice/en_US-lessac-high.onnx python3 tools/gen_dts.py src/dts_clips.c
       - uses: actions/upload-artifact@v4
         with:
           name: generated
@@ -33,6 +36,7 @@ jobs:
             src/voices.c
             src/font.c
             src/vags.c
+            src/dts_clips.c
 
   build:
     needs: assets
@@ -48,7 +52,7 @@ jobs:
           path: src
       - name: Build
         run: |
-          touch src/voices.c src/font.c src/vags.c
+          touch src/voices.c src/font.c src/vags.c src/dts_clips.c
           make
           ls -la surround-test.elf
       - uses: actions/upload-artifact@v4

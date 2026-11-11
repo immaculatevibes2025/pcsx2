@@ -86,7 +86,7 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 	for (unsigned int i = 0; i < frames; i++)
 	{
 		float l = 0.0f, r = 0.0f;
-		if (a->playing)
+		if (a->playing && a->test->kind != KIND_DTS)
 		{
 			const struct TestDef* t = a->test;
 			// The spoken label comes from the test position too (the sweep announces from its start, Front Left;
