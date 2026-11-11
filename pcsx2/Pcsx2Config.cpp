@@ -1291,6 +1291,11 @@ void Pcsx2Config::SPU2Options::LoadSave(SettingsWrapper& wrap)
 		SettingsWrapEntry(OutputMuted);
 		SettingsWrapParsedEnum(Backend, "Backend", &AudioStream::ParseBackendName, &AudioStream::GetBackendName);
 		SettingsWrapParsedEnum(SyncMode, "SyncMode", &ParseSyncMode, &GetSyncModeName);
+		{
+			int interp = static_cast<int>(Interpolation);
+			interp = wrap.EntryBitfield(CURRENT_SETTINGS_SECTION, "Interpolation", interp, 0);
+			Interpolation = static_cast<InterpolationMode>(std::clamp(interp, 0, static_cast<int>(InterpolationMode::Count) - 1));
+		}
 		SettingsWrapEntry(DriverName);
 		SettingsWrapEntry(DeviceName);
 		StreamParameters.LoadSave(wrap, CURRENT_SETTINGS_SECTION);
@@ -1309,6 +1314,7 @@ bool Pcsx2Config::SPU2Options::operator==(const SPU2Options& right) const
 		   OpEqu(FastForwardVolume) &&
 		   OpEqu(OutputMuted) &&
 		   OpEqu(Backend) &&
+		   OpEqu(Interpolation) &&
 		   OpEqu(StreamParameters) &&
 		   OpEqu(DriverName) &&
 		   OpEqu(DeviceName);

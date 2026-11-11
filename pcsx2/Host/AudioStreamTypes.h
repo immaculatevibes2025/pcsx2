@@ -58,6 +58,7 @@ struct AudioStreamParameters
 	u8 dpl2_center_width = DEFAULT_DPL2_CENTER_WIDTH;
 	s8 dpl2_dimension = DEFAULT_DPL2_DIMENSION;
 	bool dpl2_panorama = DEFAULT_DPL2_PANORAMA;
+	bool dpl2_multiband = DEFAULT_DPL2_MULTIBAND;
 
 	static constexpr AudioExpansionMode DEFAULT_EXPANSION_MODE = AudioExpansionMode::Disabled;
 	static constexpr u16 DEFAULT_BUFFER_MS = 50;
@@ -80,6 +81,7 @@ struct AudioStreamParameters
 	static constexpr u8 DEFAULT_DPL2_CENTER_WIDTH = 0;
 	static constexpr s8 DEFAULT_DPL2_DIMENSION = 0;
 	static constexpr bool DEFAULT_DPL2_PANORAMA = false;
+	static constexpr bool DEFAULT_DPL2_MULTIBAND = false;
 
 	static constexpr u16 DEFAULT_STRETCH_SEQUENCE_LENGTH = 30;
 	static constexpr u16 DEFAULT_STRETCH_SEEKWINDOW = 20;

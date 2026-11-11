@@ -498,7 +498,14 @@
      </property>
     </widget>
    </item>
-   <item row="17" column="0" colspan="2">
+   <item row="17" column="1">
+    <widget class="QCheckBox" name="dpl2MultiBand">
+     <property name="text">
+      <string>Multi-band steering (keeps dialogue centred under surround effects; not in real Pro Logic II)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="18" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Close|QDialogButtonBox::StandardButton::RestoreDefaults</set>

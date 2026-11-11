@@ -47,6 +47,11 @@ AudioSettingsWidget::AudioSettingsWidget(SettingsWindow* settings_dialog, QWidge
 	SettingWidgetBinder::BindWidgetToEnumSetting(sif, m_ui.expansionMode, "SPU2/Output", "ExpansionMode",
 		&AudioStream::ParseExpansionMode, &AudioStream::GetExpansionModeName,
 		AudioStreamParameters::DEFAULT_EXPANSION_MODE);
+	SettingWidgetBinder::BindWidgetToIntSetting(sif, m_ui.interpolation, "SPU2/Output", "Interpolation", 0);
+	dialog()->registerWidgetHelp(m_ui.interpolation, tr("Interpolation"), tr("Gaussian (Accurate to PS2)"),
+		tr("How voice samples are resampled. Gaussian matches the real PS2 sound chip, which softens high frequencies. "
+		   "Catmull-Rom was the default in PCSX2 1.6 and sounds brighter and crisper. "
+		   "Linear is the cheapest and can sound harsh."));
 	SettingWidgetBinder::BindWidgetToEnumSetting(sif, m_ui.syncMode, "SPU2/Output", "SyncMode",
 		&Pcsx2Config::SPU2Options::ParseSyncMode, &Pcsx2Config::SPU2Options::GetSyncModeName,
 		Pcsx2Config::SPU2Options::DEFAULT_SYNC_MODE);
@@ -397,6 +402,8 @@ void AudioSettingsWidget::onExpansionSettingsClicked()
 		AudioStreamParameters::DEFAULT_DPL2_DIMENSION);
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, dlgui.dpl2Panorama, "SPU2/Output", "DPL2Panorama",
 		AudioStreamParameters::DEFAULT_DPL2_PANORAMA);
+	SettingWidgetBinder::BindWidgetToBoolSetting(sif, dlgui.dpl2MultiBand, "SPU2/Output", "DPL2MultiBand",
+		AudioStreamParameters::DEFAULT_DPL2_MULTIBAND);
 	const auto update_dpl2_music = [&dlgui]() {
 		const bool music = (dlgui.dpl2Mode->currentIndex() == 2);
 		dlgui.dpl2CenterWidth->setEnabled(music);
@@ -456,6 +463,8 @@ void AudioSettingsWidget::onExpansionSettingsClicked()
 			dialog()->isPerGameSettings() ? std::nullopt : std::optional<int>(AudioStreamParameters::DEFAULT_DPL2_DIMENSION));
 		dialog()->setBoolSettingValue("SPU2/Output", "DPL2Panorama",
 			dialog()->isPerGameSettings() ? std::nullopt : std::optional<bool>(AudioStreamParameters::DEFAULT_DPL2_PANORAMA));
+		dialog()->setBoolSettingValue("SPU2/Output", "DPL2MultiBand",
+			dialog()->isPerGameSettings() ? std::nullopt : std::optional<bool>(AudioStreamParameters::DEFAULT_DPL2_MULTIBAND));
 
 		dlg.done(0);
 

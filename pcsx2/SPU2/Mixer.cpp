@@ -7,6 +7,8 @@
 #include "SPU2/spu2.h"
 #include "SPU2/interpolate_table.h"
 
+#include <algorithm>
+
 #include "common/Assertions.h"
 
 // LOOP/END sets the ENDX bit and sets NAX to LSA, and the voice is muted if LOOP is not set
@@ -288,14 +290,44 @@ static __forceinline s32 GetVoiceValues(V_Core& thiscore, uint voiceidx)
 {
 	V_Voice& vc(thiscore.Voices[voiceidx]);
 
-	int phase = (vc.SP & 0x0ff0) >> 4;
-	s32 out = 0;
-	out += (interpTable[phase][0] * vc.DecodeFifo[(vc.DecPosRead + 0) % 32]) >> 15;
-	out += (interpTable[phase][1] * vc.DecodeFifo[(vc.DecPosRead + 1) % 32]) >> 15;
-	out += (interpTable[phase][2] * vc.DecodeFifo[(vc.DecPosRead + 2) % 32]) >> 15;
-	out += (interpTable[phase][3] * vc.DecodeFifo[(vc.DecPosRead + 3) % 32]) >> 15;
+	const s32 p0 = vc.DecodeFifo[(vc.DecPosRead + 0) % 32];
+	const s32 p1 = vc.DecodeFifo[(vc.DecPosRead + 1) % 32];
+	const s32 p2 = vc.DecodeFifo[(vc.DecPosRead + 2) % 32];
+	const s32 p3 = vc.DecodeFifo[(vc.DecPosRead + 3) % 32];
 
-	return out;
+	switch (EmuConfig.SPU2.Interpolation)
+	{
+		case Pcsx2Config::SPU2Options::InterpolationMode::Gaussian:
+		default:
+		{
+			// What the real SPU2 does
+			const int phase = (vc.SP & 0x0ff0) >> 4;
+			s32 out = 0;
+			out += (interpTable[phase][0] * p0) >> 15;
+			out += (interpTable[phase][1] * p1) >> 15;
+			out += (interpTable[phase][2] * p2) >> 15;
+			out += (interpTable[phase][3] * p3) >> 15;
+			return out;
+		}
+
+		// The sharper modes interpolate between p1 (t = 0) and p2 (t = 1), the same span the Gaussian
+		// table covers, using the full 12-bit fractional pitch position.
+		case Pcsx2Config::SPU2Options::InterpolationMode::CatmullRom:
+		{
+			const float t = static_cast<float>(vc.SP & 0x0fff) * (1.0f / 4096.0f);
+			const float a = static_cast<float>(-p0 + 3 * p1 - 3 * p2 + p3);
+			const float b = static_cast<float>(2 * p0 - 5 * p1 + 4 * p2 - p3);
+			const float c = static_cast<float>(p2 - p0);
+			const float v = 0.5f * (((a * t + b) * t + c) * t) + static_cast<float>(p1);
+			return std::clamp(static_cast<s32>(v), -32768, 32767);
+		}
+
+		case Pcsx2Config::SPU2Options::InterpolationMode::Linear:
+		{
+			const s32 t = vc.SP & 0x0fff;
+			return p1 + (((p2 - p1) * t) >> 12);
+		}
+	}
 }
 
 // This is Dr. Hell's noise algorithm as implemented in pcsxr

@@ -978,6 +978,16 @@ struct Pcsx2Config
 			Count
 		};
 
+		// Voice sample interpolation. Gaussian is what the real SPU2 does (and softens the top end); the others
+		// are sharper, Catmull-Rom being what PCSX2 1.6 used by default.
+		enum class InterpolationMode : u8
+		{
+			Gaussian,
+			CatmullRom,
+			Linear,
+			Count
+		};
+
 		static constexpr s32 MAX_VOLUME = 200;
 		static constexpr AudioBackend DEFAULT_BACKEND = AudioBackend::Cubeb;
 		static constexpr SPU2SyncMode DEFAULT_SYNC_MODE = SPU2SyncMode::TimeStretch;
@@ -1010,6 +1020,7 @@ struct Pcsx2Config
 
 		AudioBackend Backend = DEFAULT_BACKEND;
 		SPU2SyncMode SyncMode = DEFAULT_SYNC_MODE;
+		InterpolationMode Interpolation = InterpolationMode::Gaussian;
 		AudioStreamParameters StreamParameters;
 
 		std::string DriverName;

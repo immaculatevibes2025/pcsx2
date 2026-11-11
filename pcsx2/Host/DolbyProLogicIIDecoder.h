@@ -32,6 +32,12 @@
 #include <cmath>
 #include <vector>
 
+// Ambience (unsteered) path: share of L+R sent to the centre. 0.707 is the passive Pro Logic matrix, which
+// puts unsteered in-phase sound (dialogue under an effect that has the steering) loudest in the centre.
+#ifndef DPL2_AMB_C
+#define DPL2_AMB_C 0.70710678f
+#endif
+
 class DolbyProLogicIIDecoder
 {
 public:
@@ -54,6 +60,10 @@ public:
 		int center_width = 0; // Music: 0 = all in centre speaker .. 7 = all in left/right (phantom centre)
 		int dimension = 0; // Music: -3 = towards rear .. +3 = towards front
 		bool panorama = false; // Music: extend front left/right image into the surrounds
+		// Steer four frequency bands independently instead of the whole signal at once. Not something a real
+		// Pro Logic II decoder does: it keeps dialogue in the centre while a broadband effect plays in a
+		// surround, where single-band steering has to choose one of them.
+		bool multiband = false;
 	};
 
 	DolbyProLogicIIDecoder(unsigned sample_rate, const Settings& settings)
@@ -100,8 +110,13 @@ public:
 			static_cast<unsigned>(std::clamp(settings.surround_delay_ms, 0.0f, 50.0f) * 0.001f * m_fs + 0.5f));
 		m_delay[0].assign(m_delay_len, 0.0f);
 		m_la_len = std::max(1u, static_cast<unsigned>(LOOKAHEAD_MS * 0.001f * m_fs + 0.5f));
-		for (auto& v : m_la)
-			v.assign(m_la_len, 0.0f);
+		m_la_lfe.assign(m_la_len, 0.0f);
+		for (Steerer& st : m_steer)
+			st.Init(m_la_len);
+		m_split[0].Init(m_fs);
+		m_split[1].Init(m_fs);
+		m_band_ctl_hp[0].SetButterworth(100.0f, m_fs, true);
+		m_band_ctl_hp[1].SetButterworth(100.0f, m_fs, true);
 		m_delay[1].assign(m_delay_len, 0.0f);
 	}
 
@@ -121,11 +136,15 @@ public:
 		m_balance_conf = 0.0f;
 		m_ax = m_ay = 0.0f;
 		m_audible = false;
-		m_w = {};
 		std::fill(m_delay[0].begin(), m_delay[0].end(), 0.0f);
-		for (auto& v : m_la)
-			std::fill(v.begin(), v.end(), 0.0f);
+		std::fill(m_la_lfe.begin(), m_la_lfe.end(), 0.0f);
 		m_la_pos = 0;
+		for (Steerer& st : m_steer)
+			st.Reset();
+		m_split[0].Reset();
+		m_split[1].Reset();
+		m_band_ctl_hp[0].Reset();
+		m_band_ctl_hp[1].Reset();
 		std::fill(m_delay[1].begin(), m_delay[1].end(), 0.0f);
 		m_delay_pos = 0;
 		m_limit_gain = 1.0f;
@@ -161,6 +180,8 @@ public:
 			// Control path
 			float cl = m_ctl_hp[0].Process(l);
 			float cr = m_ctl_hp[1].Process(r);
+			m_ctl_raw[0] = cl;
+			m_ctl_raw[1] = cr;
 
 			// Autobalance: long-term (4 s) level of each input, corrects up to +/-2 dB of constant offset.
 			// It only learns from diffuse, unsteered audio (ambience, music beds), so a deliberately one-sided
@@ -180,74 +201,51 @@ public:
 				cr /= g;
 			}
 
-			// Fast covariance of (Lt, Rt). Its principal axis is the direction of the dominant source, described by
-			// two normalised axes: X = left/right, Y = front/back (in-phase vs out-of-phase).
-			const std::array<float, 3> sq = {cl * cl, cr * cr, cl * cr};
-			for (int k = 0; k < 3; k++)
-				m_fast[k] += m_fast_coef * (sq[k] - m_fast[k]);
-			// Below about -70 dBFS there is nothing meaningful to steer on (silence, or a filter's decaying tail), so
-			// hold the current steering instead of letting it drift towards "diffuse" in every quiet gap.
-			const float tr = m_fast[0] + m_fast[1];
-			m_audible = (tr > SILENCE_POWER);
-			if (m_audible)
+			// Full-band dominance, used to gate autobalance (it only learns from diffuse audio)
 			{
-				const float fx = (m_fast[0] - m_fast[1]) / tr;
-				const float fy = (2.0f * m_fast[2]) / tr;
-
-				// Each axis follows the fast measurement with its own continuously variable speed: slow (150 ms)
-				// for small deviations, which averages out noise in a steady soundfield, rising to fast (8 ms) as
-				// the deviation grows, so moving sources and transients are tracked without lag.
-				m_ax += AdaptiveCoef(fx - m_ax) * (fx - m_ax);
-				m_ay += AdaptiveCoef(fy - m_ay) * (fy - m_ay);
+				const std::array<float, 3> sq = {cl * cl, cr * cr, cl * cr};
+				for (int k = 0; k < 3; k++)
+					m_fast[k] += m_fast_coef * (sq[k] - m_fast[k]);
+				const float tr = m_fast[0] + m_fast[1];
+				m_audible = (tr > SILENCE_POWER);
+				if (m_audible)
+				{
+					const float fx = (m_fast[0] - m_fast[1]) / tr, fy = (2.0f * m_fast[2]) / tr;
+					m_ax += AdaptiveCoef(fx - m_ax) * (fx - m_ax);
+					m_ay += AdaptiveCoef(fy - m_ay) * (fy - m_ay);
+				}
 			}
-			const float dom = std::min(1.0f, std::sqrt(m_ax * m_ax + m_ay * m_ay));
+			const float bal_l = (cl != 0.0f && m_ctl_raw[0] != 0.0f) ? cl / m_ctl_raw[0] : 1.0f;
+			const float bal_r = (cr != 0.0f && m_ctl_raw[1] != 0.0f) ? cr / m_ctl_raw[1] : 1.0f;
 
-			// Direction as an angle in [0, 180): 0 = L, 45 = C, 90 = R, ~125 = RR, 135 = rear centre, ~145 = RL, 180 = L.
-			float theta = 0.5f * std::atan2(m_ay, m_ax) * (180.0f / 3.14159265f);
-			if (theta < 0.0f)
-				theta += 180.0f;
-			const float ux = std::cos(theta * (3.14159265f / 180.0f)), uy = std::sin(theta * (3.14159265f / 180.0f));
-
-			// Target weights: per output channel, a 2-vector applied to (Lt, Rt) for the steered part, and the
-			// projection matrix that removes the steered part from the ambience path. Both are continuous across
-			// the 0/180 wrap, so they can be smoothed directly.
-			std::array<float, 5> node = {};
-			NodeGains(theta, node);
-			std::array<float, 13> target;
-			for (int c = 0; c < 5; c++)
+			std::array<float, 5> mix = {}; // fl, fc, fr, rs, ls
+			if (!m_settings.multiband)
 			{
-				target[c * 2 + 0] = dom * node[c] * ux;
-				target[c * 2 + 1] = dom * node[c] * uy;
+				m_steer[0].Process(*this, cl, cr, l, r, mix);
 			}
-			target[10] = dom * ux * ux;
-			target[11] = dom * ux * uy;
-			target[12] = dom * uy * uy;
-			for (int k = 0; k < 13; k++)
-				m_w[k] += m_gain_coef * (target[k] - m_w[k]);
-
-			// Ambience: what is left after removing the steered source, through a passive matrix
-			// Look-ahead: the control path above saw this audio LOOKAHEAD_MS ago, so the steering is already in
-			// place when a sound starts. Without it, the first 20-40 ms of every new sound leaked into the
-			// same-side front speaker before steering caught up (and arrived ahead of the delayed surround).
+			else
 			{
-				const float dl = m_la[0][m_la_pos], dr = m_la[1][m_la_pos], dlfe = m_la[2][m_la_pos];
-				m_la[0][m_la_pos] = l;
-				m_la[1][m_la_pos] = r;
-				m_la[2][m_la_pos] = lfe;
+				float bl[4], br[4];
+				SplitBands(0, l, bl);
+				SplitBands(1, r, br);
+				for (int b = 0; b < 4; b++)
+				{
+					// The lowest band keeps the 100 Hz high-pass on its control signal, like the single-band path
+					const float ccl = (b == 0) ? m_band_ctl_hp[0].Process(bl[0]) : bl[b];
+					const float ccr = (b == 0) ? m_band_ctl_hp[1].Process(br[0]) : br[b];
+					m_steer[b].Process(*this, ccl * bal_l, ccr * bal_r, bl[b], br[b], mix);
+				}
+			}
+
+			// LFE look-ahead, to stay aligned with the mains
+			{
+				const float dlfe = m_la_lfe[m_la_pos];
+				m_la_lfe[m_la_pos] = lfe;
 				m_la_pos = (m_la_pos + 1 == m_la_len) ? 0 : (m_la_pos + 1);
-				l = dl;
-				r = dr;
 				lfe = dlfe;
 			}
 
-			const float al = l - (m_w[10] * l + m_w[11] * r);
-			const float ar = r - (m_w[11] * l + m_w[12] * r);
-
-			float fl = m_w[0] * l + m_w[1] * r + al;
-			float fc = m_w[2] * l + m_w[3] * r + (al + ar) * 0.35355339f;
-			float fr = m_w[4] * l + m_w[5] * r + ar;
-			float rs = m_w[6] * l + m_w[7] * r + (-0.5774f * al + 0.8165f * ar) * 0.70710678f;
-			float ls = m_w[8] * l + m_w[9] * r + (-0.8165f * al + 0.5774f * ar) * 0.70710678f;
+			float fl = mix[0], fc = mix[1], fr = mix[2], rs = mix[3], ls = mix[4];
 
 			// Music mode Centre Width: spread the centre into a phantom image on L/R (constant power)
 			if (m_center_keep != 1.0f)
@@ -390,6 +388,162 @@ private:
 	static constexpr float RL_EDGE = 168.0f;
 	static constexpr float RR_EDGE = 102.0f;
 
+	// One steering + matrix stage: tracks the dominant direction of its (Lt, Rt) input, cancels it from the
+	// channels it does not belong to, and renders the rest through a passive matrix. The single-band decoder
+	// uses one; the multi-band option uses one per band.
+	struct Steerer
+	{
+		std::array<float, 3> fast = {}; // E[l^2], E[r^2], E[lr]
+		float ax = 0.0f, ay = 0.0f;
+		bool audible = false;
+		std::array<float, 13> w = {};
+		std::vector<float> la[2];
+		unsigned la_pos = 0;
+
+		void Init(unsigned la_len)
+		{
+			la[0].assign(la_len, 0.0f);
+			la[1].assign(la_len, 0.0f);
+			Reset();
+		}
+
+		void Reset()
+		{
+			fast = {};
+			ax = ay = 0.0f;
+			audible = false;
+			w = {};
+			std::fill(la[0].begin(), la[0].end(), 0.0f);
+			std::fill(la[1].begin(), la[1].end(), 0.0f);
+			la_pos = 0;
+		}
+
+		// cl/cr: control signal (not delayed). l/r: audio (delayed here by the look-ahead). Adds to mix.
+		void Process(const DolbyProLogicIIDecoder& d, float cl, float cr, float l, float r, std::array<float, 5>& mix)
+		{
+			// Fast covariance of (Lt, Rt). Its principal axis is the direction of the dominant source, described
+			// by two normalised axes: X = left/right, Y = front/back (in-phase vs out-of-phase).
+			const std::array<float, 3> sq = {cl * cl, cr * cr, cl * cr};
+			for (int k = 0; k < 3; k++)
+				fast[k] += d.m_fast_coef * (sq[k] - fast[k]);
+			// Below about -70 dBFS there is nothing meaningful to steer on (silence, or a filter's decaying tail),
+			// so hold the current steering instead of letting it drift towards "diffuse" in every quiet gap.
+			const float tr = fast[0] + fast[1];
+			audible = (tr > SILENCE_POWER);
+			if (audible)
+			{
+				const float fx = (fast[0] - fast[1]) / tr;
+				const float fy = (2.0f * fast[2]) / tr;
+				// Each axis follows the measurement at its own continuously variable speed: slow (150 ms) for
+				// small deviations, rising to fast (8 ms) as the deviation grows.
+				ax += d.AdaptiveCoef(fx - ax) * (fx - ax);
+				ay += d.AdaptiveCoef(fy - ay) * (fy - ay);
+			}
+			const float dom = std::min(1.0f, std::sqrt(ax * ax + ay * ay));
+
+			// Direction as an angle in [0, 180): 0 = L, 45 = C, 90 = R, ~125 = RR, 135 = rear centre, ~145 = RL.
+			float theta = 0.5f * std::atan2(ay, ax) * (180.0f / 3.14159265f);
+			if (theta < 0.0f)
+				theta += 180.0f;
+			const float ux = std::cos(theta * (3.14159265f / 180.0f)), uy = std::sin(theta * (3.14159265f / 180.0f));
+
+			// Target weights: per output channel, a 2-vector applied to (Lt, Rt) for the steered part, and the
+			// projection that removes the steered part from the ambience path. Both are continuous across the
+			// 0/180 wrap, so they can be smoothed directly.
+			std::array<float, 5> node = {};
+			NodeGains(theta, node);
+			std::array<float, 13> target;
+			for (int c = 0; c < 5; c++)
+			{
+				target[c * 2 + 0] = dom * node[c] * ux;
+				target[c * 2 + 1] = dom * node[c] * uy;
+			}
+			target[10] = dom * ux * ux;
+			target[11] = dom * ux * uy;
+			target[12] = dom * uy * uy;
+			for (int k = 0; k < 13; k++)
+				w[k] += d.m_gain_coef * (target[k] - w[k]);
+
+			// Look-ahead: the control path above saw this audio LOOKAHEAD_MS ago, so the steering is already in
+			// place when a sound starts. Without it, the first 20-40 ms of every new sound leaked into the
+			// same-side front speaker before steering caught up (and arrived ahead of the delayed surround).
+			const float dl = la[0][la_pos], dr = la[1][la_pos];
+			la[0][la_pos] = l;
+			la[1][la_pos] = r;
+			la_pos = (la_pos + 1 == la[0].size()) ? 0 : (la_pos + 1);
+			l = dl;
+			r = dr;
+
+			// Ambience: what is left after removing the steered source, through a passive matrix
+			const float al = l - (w[10] * l + w[11] * r);
+			const float ar = r - (w[11] * l + w[12] * r);
+			mix[0] += w[0] * l + w[1] * r + al;
+			mix[1] += w[2] * l + w[3] * r + (al + ar) * DPL2_AMB_C;
+			mix[2] += w[4] * l + w[5] * r + ar;
+			mix[3] += w[6] * l + w[7] * r + (-0.5774f * al + 0.8165f * ar) * 0.70710678f;
+			mix[4] += w[8] * l + w[9] * r + (-0.8165f * al + 0.5774f * ar) * 0.70710678f;
+		}
+	};
+
+	// 4-band Linkwitz-Riley split (crossovers 250 Hz, 1.2 kHz, 4 kHz) whose bands sum back to an all-pass,
+	// so a single source steered the same way in every band comes out with a flat magnitude response.
+	struct LR4
+	{
+		Biquad a, b;
+		void Set(float fc, float fs, bool hp)
+		{
+			a.SetButterworth(fc, fs, hp);
+			b.SetButterworth(fc, fs, hp);
+		}
+		void Reset()
+		{
+			a.Reset();
+			b.Reset();
+		}
+		float Process(float x) { return b.Process(a.Process(x)); }
+	};
+
+	struct BandSplit
+	{
+		LR4 lp_mid, hp_mid; // at 1.2 kHz
+		LR4 ap_hi_lp, ap_hi_hp; // all-pass at 4 kHz on the low branch
+		LR4 lp_lo, hp_lo; // at 250 Hz
+		LR4 ap_lo_lp, ap_lo_hp; // all-pass at 250 Hz on the high branch
+		LR4 lp_hi, hp_hi; // at 4 kHz
+
+		void Init(float fs)
+		{
+			lp_mid.Set(1200.0f, fs, false);
+			hp_mid.Set(1200.0f, fs, true);
+			ap_hi_lp.Set(4000.0f, fs, false);
+			ap_hi_hp.Set(4000.0f, fs, true);
+			lp_lo.Set(250.0f, fs, false);
+			hp_lo.Set(250.0f, fs, true);
+			ap_lo_lp.Set(250.0f, fs, false);
+			ap_lo_hp.Set(250.0f, fs, true);
+			lp_hi.Set(4000.0f, fs, false);
+			hp_hi.Set(4000.0f, fs, true);
+		}
+		void Reset()
+		{
+			for (LR4* f : {&lp_mid, &hp_mid, &ap_hi_lp, &ap_hi_hp, &lp_lo, &hp_lo, &ap_lo_lp, &ap_lo_hp, &lp_hi, &hp_hi})
+				f->Reset();
+		}
+		void Process(float x, float* bands)
+		{
+			float lo = lp_mid.Process(x);
+			float hi = hp_mid.Process(x);
+			lo = ap_hi_lp.Process(lo) + ap_hi_hp.Process(lo);
+			hi = ap_lo_lp.Process(hi) + ap_lo_hp.Process(hi);
+			bands[0] = lp_lo.Process(lo);
+			bands[1] = hp_lo.Process(lo);
+			bands[2] = lp_hi.Process(hi);
+			bands[3] = hp_hi.Process(hi);
+		}
+	};
+
+	void SplitBands(int ch, float x, float* bands) { m_split[ch].Process(x, bands); }
+
 	float m_fs;
 	Settings m_settings;
 	bool m_use_lfe = false;
@@ -409,7 +563,6 @@ private:
 	bool m_audible = false; // previous sample's control signal was above the silence floor
 
 	static constexpr float SILENCE_POWER = 1e-7f; // about -70 dBFS
-	std::array<float, 13> m_w = {};
 
 	std::vector<float> m_delay[2];
 	unsigned m_delay_len = 1, m_delay_pos = 0;
@@ -423,8 +576,12 @@ private:
 #endif
 	static constexpr float LOOKAHEAD_MS = DPL2_LOOKAHEAD_MS;
 	static constexpr float GAIN_MS = DPL2_GAIN_MS;
-	std::vector<float> m_la[3];
+	std::vector<float> m_la_lfe;
 	unsigned m_la_len = 1, m_la_pos = 0;
+	Steerer m_steer[4];
+	BandSplit m_split[2];
+	Biquad m_band_ctl_hp[2];
+	float m_ctl_raw[2] = {};
 	float m_limit_gain = 1.0f;
 	float m_release_coef = 0.0f;
 };
