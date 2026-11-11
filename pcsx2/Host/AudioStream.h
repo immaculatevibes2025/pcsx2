@@ -216,6 +216,7 @@ void AudioStream::SampleReaderImpl(SampleType* dest, const SampleType* src, u32 
 			{{0, 1, 2, -1, -1, 3, 4, 5}, 6}, // Surround51
 			{{0, 1, 2, 3, 4, 5, 6, 7}, 8}, // Surround71
 			{{0, 1, 2, -1, -1, 3, 4, 5}, 6}, // DolbyProLogicII (same layout as Surround51)
+			{{0, 1, 2, -1, -1, 3, 4, 5}, 6}, // DolbyProLogicIISupportedGames (resolved before use)
 		}};
 	constexpr const auto& lut = luts[static_cast<size_t>(mode)].first;
 	for (u32 i = 0; i < num_frames; i++)

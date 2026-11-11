@@ -6,6 +6,7 @@
 #include "SPU2/Debug.h"
 #include "SPU2/Dma.h"
 #include "Host/AudioStream.h"
+#include "SPU2/DPL2Games.h"
 #include "Host.h"
 #include "GS/GSCapture.h"
 #include "MTGS.h"
@@ -116,8 +117,19 @@ void SPU2::CreateOutputStream()
 	const u32 sample_rate = GetConsoleSampleRate();
 	s_output_stream.reset();
 
+	// "Supported games only": Pro Logic II decoding for games known to support it, plain stereo otherwise.
+	AudioStreamParameters params = EmuConfig.SPU2.StreamParameters;
+	if (params.expansion_mode == AudioExpansionMode::DolbyProLogicIISupportedGames)
+	{
+		const std::string serial = VMManager::GetDiscSerial();
+		const bool supported = DPL2Games::IsSupported(serial);
+		params.expansion_mode = supported ? AudioExpansionMode::DolbyProLogicII : AudioExpansionMode::Disabled;
+		Console.WriteLn("SPU2: '%s' %s Dolby Pro Logic II, using %s.", serial.c_str(), supported ? "supports" : "is not listed as supporting",
+			supported ? "Pro Logic II decoding" : "stereo");
+	}
+
 	Error error;
-	s_output_stream = AudioStream::CreateStream(EmuConfig.SPU2.Backend, sample_rate, EmuConfig.SPU2.StreamParameters,
+	s_output_stream = AudioStream::CreateStream(EmuConfig.SPU2.Backend, sample_rate, params,
 		EmuConfig.SPU2.DriverName.c_str(), EmuConfig.SPU2.DeviceName.c_str(), EmuConfig.SPU2.IsTimeStretchEnabled(), &error);
 	if (!s_output_stream)
 	{

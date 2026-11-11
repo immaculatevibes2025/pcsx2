@@ -845,6 +845,7 @@
     <ClInclude Include="SIO\SioTypes.h" />
     <ClInclude Include="SPU2\Debug.h" />
     <ClInclude Include="SPU2\Dma.h" />
+    <ClInclude Include="SPU2\DPL2Games.h" />
     <ClInclude Include="SPU2\interpolate_table.h" />
     <ClInclude Include="SPU2\spdif.h" />
     <ClInclude Include="SPU2\defs.h" />

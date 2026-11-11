@@ -103,6 +103,9 @@ bool SDLAudioStream::OpenDevice(bool stretch_enabled, Error* error)
 		// DolbyProLogicII
 		&SampleReaderImpl<AudioExpansionMode::DolbyProLogicII, READ_CHANNEL_FRONT_LEFT, READ_CHANNEL_FRONT_RIGHT,
 			READ_CHANNEL_FRONT_CENTER, READ_CHANNEL_LFE, READ_CHANNEL_REAR_LEFT, READ_CHANNEL_REAR_RIGHT>,
+		// DolbyProLogicIISupportedGames (resolved before the stream is created)
+		&SampleReaderImpl<AudioExpansionMode::DolbyProLogicII, READ_CHANNEL_FRONT_LEFT, READ_CHANNEL_FRONT_RIGHT,
+			READ_CHANNEL_FRONT_CENTER, READ_CHANNEL_LFE, READ_CHANNEL_REAR_LEFT, READ_CHANNEL_REAR_RIGHT>,
 	}};
 
 	uint samples = GetBufferSizeForMS(

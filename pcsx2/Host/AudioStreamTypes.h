@@ -26,6 +26,7 @@ enum class AudioExpansionMode : u8
 	Surround51,
 	Surround71,
 	DolbyProLogicII,
+	DolbyProLogicIISupportedGames, // resolved to DolbyProLogicII or Disabled per game before the stream is created
 	Count
 };
 

@@ -2175,6 +2175,9 @@
     <ClInclude Include="SPU2\Dma.h">
       <Filter>System\Ps2\SPU2</Filter>
     </ClInclude>
+    <ClInclude Include="SPU2\DPL2Games.h">
+      <Filter>System\Ps2\SPU2</Filter>
+    </ClInclude>
     <ClInclude Include="GS\Renderers\HW\GSHwHack.h">
       <Filter>System\Ps2\GS\Renderers\Hardware</Filter>
     </ClInclude>

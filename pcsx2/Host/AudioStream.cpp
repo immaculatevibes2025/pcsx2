@@ -37,6 +37,7 @@ static constexpr const std::array<std::pair<u8, u8>, static_cast<size_t>(AudioEx
 		{u8(6), u8(6)}, // Surround51
 		{u8(8), u8(8)}, // Surround71
 		{u8(6), u8(6)}, // DolbyProLogicII
+		{u8(6), u8(6)}, // DolbyProLogicIISupportedGames
 	}};
 
 AudioStream::DeviceInfo::DeviceInfo(std::string name_, std::string display_name_, u32 minimum_latency_)
@@ -190,6 +191,7 @@ static constexpr const std::array s_expansion_mode_names = {
 	"Surround51",
 	"Surround71",
 	"DolbyProLogicII",
+	"DolbyProLogicIISupportedGames",
 };
 static constexpr const std::array s_expansion_mode_display_names = {
 	TRANSLATE_NOOP("AudioStream", "Disabled (Stereo)"),
@@ -199,6 +201,7 @@ static constexpr const std::array s_expansion_mode_display_names = {
 	TRANSLATE_NOOP("AudioStream", "5.1 Surround"),
 	TRANSLATE_NOOP("AudioStream", "7.1 Surround"),
 	TRANSLATE_NOOP("AudioStream", "Dolby Pro Logic II (5.1)"),
+	TRANSLATE_NOOP("AudioStream", "Dolby Pro Logic II (5.1), Supported Games Only"),
 };
 
 const char* AudioStream::GetExpansionModeName(AudioExpansionMode mode)
@@ -548,6 +551,7 @@ void AudioStream::ExpandAllocate()
 			{FreeSurroundDecoder::ChannelSetup::Surround51, true}, // Surround51
 			{FreeSurroundDecoder::ChannelSetup::Surround71, true}, // Surround71
 			{FreeSurroundDecoder::ChannelSetup::Surround51, true}, // DolbyProLogicII (not used)
+			{FreeSurroundDecoder::ChannelSetup::Surround51, true}, // DolbyProLogicIISupportedGames (not used)
 		}};
 
 	const auto [fs_setup, fs_lfe] = channel_setup_mapping[static_cast<size_t>(m_parameters.expansion_mode)];
