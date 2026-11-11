@@ -25,12 +25,14 @@ jobs:
         run: |
           PIPER_MODEL=voice/en_US-lessac-high.onnx python3 tools/gen_voices.py src/voices.c
           python3 tools/gen_font.py src/font.c /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf 20
+          python3 tools/gen_vag.py src/vags.c
       - uses: actions/upload-artifact@v4
         with:
           name: generated
           path: |
             src/voices.c
             src/font.c
+            src/vags.c
 
   build:
     needs: assets
@@ -46,7 +48,7 @@ jobs:
           path: src
       - name: Build
         run: |
-          touch src/voices.c src/font.c
+          touch src/voices.c src/font.c src/vags.c
           make
           ls -la surround-test.elf
       - uses: actions/upload-artifact@v4

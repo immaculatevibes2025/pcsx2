@@ -29,7 +29,8 @@ Each test speaks its name from the position being tested, then plays pink noise 
 6. Dialogue + Surround Left/Right effect: two sources at once, the hardest case for a matrix decoder
 7. Fast sweep: one lap every 2.5 seconds, checks steering keeps up
 8. Quiet levels: Surround Left and Right at 0, -20 and -40 dB, should stay in the surround at every level
-9. Ambience: uncorrelated noise, should spread evenly and not lock onto one speaker
+9. Interpolation: a treble sweep and white noise played on a real SPU2 voice (22,050 Hz ADPCM), to hear PCSX2's Interpolation setting (Gaussian vs Catmull-Rom)
+10. Ambience: uncorrelated noise, should spread evenly and not lock onto one speaker
 
 ## Encoding
 

@@ -3,3 +3,4 @@
 *_irx.c
 src/voices.c
 src/font.c
+src/vags.c

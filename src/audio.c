@@ -112,7 +112,8 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 				}
 
 				case PHASE_GAP:
-					if (++a->pos >= GAP_SAMPLES)
+					// voice-sample tests wait longer, so the streamed label has finished before the sample starts
+					if (++a->pos >= ((t->kind == KIND_VOICE_SWEEP || t->kind == KIND_VOICE_NOISE) ? GAP_SAMPLES * 4 : GAP_SAMPLES))
 					{
 						a->phase = PHASE_BURST;
 						a->pos = 0;
@@ -121,6 +122,9 @@ void Audio_Render(struct AudioState* a, short* out, unsigned int frames)
 
 				case PHASE_BURST:
 				{
+					// Voice-sample tests: the sample plays on an SPU2 voice (started by main), nothing streamed
+					if (t->kind == KIND_VOICE_SWEEP || t->kind == KIND_VOICE_NOISE)
+						break;
 					if (t->kind == KIND_SWEEP || t->kind == KIND_FAST_SWEEP)
 					{
 						// continuous, never pauses

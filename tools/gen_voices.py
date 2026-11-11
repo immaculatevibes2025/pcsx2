@@ -37,6 +37,8 @@ LABELS = [
     "Fast sweep",
     "Quiet levels, surround left",
     "Quiet levels, surround right",
+    "Interpolation, treble sweep",
+    "Interpolation, noise",
     "Ambience",
     # looped "dialogue" for the two-source test (must stay last)
     "This is the dialogue. It should stay in the center speaker, while the noise plays behind you.",

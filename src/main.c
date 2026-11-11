@@ -31,6 +31,10 @@ extern unsigned char padman_irx[];
 extern unsigned int size_padman_irx;
 
 extern const struct VoiceClip g_voices[];
+extern unsigned char vag_sweep[], vag_noise[];
+extern const int vag_sweep_size, vag_noise_size;
+
+#define TEST_VOICE_CH 0
 
 #define PI 3.14159265f
 #define AUDIO_CHUNK 512
@@ -465,6 +469,13 @@ int main(void)
 	struct audsrv_fmt_t fmt = {AUDIO_RATE, 16, 2};
 	audsrv_set_format(&fmt);
 	audsrv_set_volume(MAX_VOLUME);
+
+	// SPU2 voice samples for the interpolation tests
+	static audsrv_adpcm_t sample_sweep, sample_noise;
+	audsrv_adpcm_init();
+	audsrv_load_adpcm(&sample_sweep, vag_sweep, vag_sweep_size);
+	audsrv_load_adpcm(&sample_noise, vag_noise, vag_noise_size);
+	int voice_playing = 0, voice_frames = 0;
 	static short chunk[AUDIO_CHUNK * 2] __attribute__((aligned(64)));
 	struct AudioState audio;
 	Audio_Init(&audio, g_voices);
@@ -508,6 +519,37 @@ int main(void)
 			Audio_Stop(&audio);
 		}
 
+		// Voice-sample tests: play the ADPCM sample on an SPU2 voice during the burst phase, repeat after a pause
+		{
+			const int is_voice_test = audio.playing && (audio.test->kind == KIND_VOICE_SWEEP || audio.test->kind == KIND_VOICE_NOISE);
+			audsrv_adpcm_t* smp = (is_voice_test && audio.test->kind == KIND_VOICE_SWEEP) ? &sample_sweep : &sample_noise;
+			if (!is_voice_test)
+			{
+				if (voice_playing)
+				{
+					audsrv_adpcm_set_volume_and_pan(TEST_VOICE_CH, 0, 0);
+					voice_playing = 0;
+				}
+			}
+			else if (audio.phase == PHASE_BURST)
+			{
+				if (!voice_playing)
+				{
+					audsrv_adpcm_set_volume_and_pan(TEST_VOICE_CH, MAX_VOLUME, 0);
+					audsrv_ch_play_adpcm(TEST_VOICE_CH, smp);
+					voice_playing = 1;
+					voice_frames = 0;
+				}
+				else if (++voice_frames > 10 && !audsrv_is_adpcm_playing(TEST_VOICE_CH, smp))
+				{
+					voice_playing = 0;
+					audio.bursts_done++;
+					audio.phase = PHASE_PAUSE;
+					audio.pos = 0;
+				}
+			}
+		}
+
 		// Auto mode: three bursts (one lap for the sweep), then next test
 		if (autoplay && audio.playing)
 		{
@@ -515,6 +557,7 @@ int main(void)
 			const int done = (k == KIND_SWEEP) ? (audio.laps >= 1) :
 							 (k == KIND_FAST_SWEEP) ? (audio.laps >= 3) :
 							 (k == KIND_LEVELS) ? (audio.bursts_done >= 6) :
+							 (k == KIND_VOICE_SWEEP || k == KIND_VOICE_NOISE) ? (audio.bursts_done >= 1) :
 													 (audio.bursts_done >= 3);
 			if (done)
 			{

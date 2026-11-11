@@ -23,6 +23,8 @@ enum TestKind
 	KIND_DUAL, // continuous dialogue in the centre + noise bursts at theta (two sources at once)
 	KIND_FAST_SWEEP, // like the sweep, one lap every 2.5 s
 	KIND_LEVELS, // bursts at theta at 0, -20 and -40 dB
+	KIND_VOICE_SWEEP, // 22 kHz ADPCM sine sweep played on an SPU2 voice (shows the interpolation setting)
+	KIND_VOICE_NOISE, // 22 kHz ADPCM white noise played on an SPU2 voice
 };
 
 struct TestDef
@@ -64,7 +66,9 @@ static const struct TestDef g_tests[] = {
 	{"Fast Sweep", "Follows a full lap every 2.5 s without lagging or jumping", "Lt cos(t)  Rt sin(t), fast", 0.0f, KIND_FAST_SWEEP, 18},
 	{"Quiet Levels, Surround Left", "Every burst from Surround Left only, even at -40 dB", "Surround Left at 0, -20, -40 dB", DEG_SL, KIND_LEVELS, 19},
 	{"Quiet Levels, Surround Right", "Every burst from Surround Right only, even at -40 dB", "Surround Right at 0, -20, -40 dB", DEG_SR, KIND_LEVELS, 20},
-	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 21},
+	{"Interpolation: Treble Sweep", "Level all the way up with Catmull-Rom; fades in the top octave with Gaussian (PS2 accurate)", "PS2 voice, 22,050 Hz ADPCM sweep 100 Hz-10.5 kHz, Center", DEG_C, KIND_VOICE_SWEEP, 21},
+	{"Interpolation: Noise", "Brighter with Catmull-Rom, softer with Gaussian", "PS2 voice, 22,050 Hz ADPCM white noise, Center", DEG_C, KIND_VOICE_NOISE, 22},
+	{"Ambience", "Spread evenly around the room, no single speaker", "Uncorrelated noise in Lt and Rt", 0.0f, KIND_AMBIENCE, 23},
 };
 
 // Spoken line looped as "dialogue" in the two-source test (index after the test labels)
