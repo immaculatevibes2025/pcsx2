@@ -27,7 +27,7 @@ jobs:
   build_qt_sse4:
     needs: [build_qt_deps, lint_vs_proj_files]
     name: "SSE4"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    if: false # personal build: only the MSVC AVX2 build is needed
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "MSVC SSE4"
@@ -50,7 +50,7 @@ jobs:
   build_qt_cmake:
     needs: build_qt_deps
     name: "CMake"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    if: false # personal build: only the MSVC AVX2 build is needed
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "CMake MSVC"
@@ -62,7 +62,7 @@ jobs:
   build_qt_clang_sse4:
     needs: [build_qt_deps, lint_vs_proj_files]
     name: "SSE4"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    if: false # personal build: only the MSVC AVX2 build is needed
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "Clang SSE4"
@@ -74,7 +74,7 @@ jobs:
   build_qt_clang_avx2:
     needs: [build_qt_deps, lint_vs_proj_files]
     name: "AVX2"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    if: false # personal build: only the MSVC AVX2 build is needed
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "Clang AVX2"
@@ -85,7 +85,7 @@ jobs:
   build_qt_cmake_clang:
     needs: build_qt_deps
     name: "CMake"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    if: false # personal build: only the MSVC AVX2 build is needed
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "CMake Clang"

@@ -1,12 +1,7 @@
 name: 🐧 Linux Builds
 
 on:
-  push:
-    branches-ignore:
-      - "l10n_master"
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch: # personal Windows-only fork: Linux/macOS builds run on request only
 
 jobs:
   build_linux_qt:
