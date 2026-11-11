@@ -39,7 +39,7 @@ static void stop(void)
 {
 	if (!s_playing)
 		return;
-	sceSdBlockTrans(SD_CORE_0, SD_TRANS_STOP, NULL, 0);
+	sceSdBlockTrans(0 /* core 0 */, SD_TRANS_STOP, NULL, 0);
 	*SPDIF_OUT = s_saved_out;
 	*SPDIF_MODE = s_saved_mode;
 	*SPDIF_MEDIA = s_saved_media;
@@ -75,7 +75,7 @@ static void* rpc_handler(int cmd, void* data, int size)
 			*SPDIF_MODE = 0x0000;
 			*SPDIF_OUT = SPDIF_OUT_BYPASS;
 			// Loop the whole stream. Block layout: 512 bytes left, 512 bytes right, repeated.
-			sceSdBlockTrans(SD_CORE_0, SD_TRANS_LOOP, (u8*)s_buf, arg[0]);
+			sceSdBlockTrans(0 /* core 0 */, SD_TRANS_LOOP, (u8*)s_buf, arg[0]);
 			s_playing = 1;
 			arg[0] = 0;
 			break;
