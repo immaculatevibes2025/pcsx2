@@ -1017,6 +1017,7 @@ struct Pcsx2Config
 		u32 StandardVolume = 100;
 		u32 FastForwardVolume = 100;
 		bool OutputMuted = false;
+		bool FormatNotifications = false; // pop up a notification when the audio format changes
 
 		AudioBackend Backend = DEFAULT_BACKEND;
 		SPU2SyncMode SyncMode = DEFAULT_SYNC_MODE;

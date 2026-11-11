@@ -16,6 +16,8 @@
 
 #include "common/Error.h"
 
+#include "IconsFontAwesome.h"
+
 const StereoOut32 StereoOut32::Empty(0, 0);
 
 namespace SPU2
@@ -34,6 +36,31 @@ static bool s_output_muted = false;
 
 static std::unique_ptr<AudioStream> s_output_stream;
 static std::array<float, AudioStream::CHUNK_SIZE * 2> s_current_chunk;
+
+// Audio format notifications (Settings > Audio > "Show audio format notifications")
+static std::string s_base_audio_format; // what plays when no Dolby Digital / DTS bitstream is active
+
+static void NotifyAudioFormat(const std::string& name)
+{
+	if (!EmuConfig.SPU2.FormatNotifications || name.empty())
+		return;
+	Host::AddIconOSDMessage("AudioFormatChanged", ICON_FA_VOLUME_HIGH,
+		fmt::format(TRANSLATE_FS("SPU2", "Audio: {}"), name), Host::OSD_INFO_DURATION);
+}
+
+static std::string GetBaseAudioFormatName(AudioExpansionMode mode)
+{
+	switch (mode)
+	{
+		case AudioExpansionMode::Disabled:
+			return TRANSLATE_STR("SPU2", "Stereo");
+		case AudioExpansionMode::DolbyProLogicII:
+		case AudioExpansionMode::DolbyProLogicIISupportedGames:
+			return TRANSLATE_STR("SPU2", "Dolby Pro Logic II");
+		default:
+			return Host::TranslateToString("AudioStream", AudioStream::GetExpansionModeDisplayName(mode));
+	}
+}
 static u32 s_current_chunk_pos;
 static u32 s_standard_volume = 0;
 static u32 s_fast_forward_volume = 0;
@@ -128,6 +155,9 @@ void SPU2::CreateOutputStream()
 		Console.WriteLn("SPU2: '%s' %s Dolby Pro Logic II, using %s.", serial.c_str(), supported ? "supports" : "is not listed as supporting",
 			supported ? "Pro Logic II decoding" : "stereo");
 	}
+
+	s_base_audio_format = GetBaseAudioFormatName(params.expansion_mode);
+	NotifyAudioFormat(s_base_audio_format);
 
 	Error error;
 	s_output_stream = AudioStream::CreateStream(EmuConfig.SPU2.Backend, sample_rate, params,
@@ -553,14 +583,30 @@ __forceinline void spu2Output(StereoOut32 out)
 		const u32 avail = BitstreamDecoder::GetAvailableFrames();
 		if (!s_discrete_active && avail >= 2048)
 			s_discrete_active = true;
+		// Format notifications: announce Dolby Digital / DTS when it starts, and the normal format again once the
+		// bitstream has been gone for half a second (so short gaps between bursts do not flicker).
+		static bool s_discrete_announced = false;
+		static u32 s_discrete_idle_chunks = 0;
+		static constexpr u32 DISCRETE_IDLE_CHUNKS = 24000 / AudioStream::CHUNK_SIZE;
 		if (s_discrete_active && BitstreamDecoder::PopFrames(s_discrete_chunk.data(), AudioStream::CHUNK_SIZE))
 		{
 			s_output_stream->WriteChunkDiscrete(s_discrete_chunk.data());
+			s_discrete_idle_chunks = 0;
+			if (!s_discrete_announced)
+			{
+				s_discrete_announced = true;
+				NotifyAudioFormat(BitstreamDecoder::GetFormatName());
+			}
 		}
 		else
 		{
 			s_discrete_active = false;
 			s_output_stream->WriteChunk(s_current_chunk.data());
+			if (s_discrete_announced && ++s_discrete_idle_chunks >= DISCRETE_IDLE_CHUNKS)
+			{
+				s_discrete_announced = false;
+				NotifyAudioFormat(s_base_audio_format);
+			}
 		}
 
 		if (SPU2::IsAudioCaptureActive()) [[unlikely]]

@@ -101,6 +101,8 @@ namespace
 		std::vector<float> fifo;
 		u32 fifo_read = 0, fifo_frames = 0;
 
+		char format_name[32] = {};
+
 		// Diagnostics
 		int last_play_mode = -1;
 		u64 words_seen = 0, bursts = 0, decoded_frames = 0, decode_errors = 0;
@@ -219,6 +221,11 @@ namespace
 			return; // PS2 bitstreams are 48 kHz; anything else is not something we can play in sync
 		}
 		const int nch = f->ch_layout.nb_channels;
+		{
+			const bool lfe = (f->ch_layout.order == AV_CHANNEL_ORDER_NATIVE) && (f->ch_layout.u.mask & AV_CH_LOW_FREQUENCY);
+			std::snprintf(s.format_name, sizeof(s.format_name), "%s %d.%d", (s.codec == Codec::AC3) ? "Dolby Digital" : "DTS",
+				lfe ? nch - 1 : nch, lfe ? 1 : 0);
+		}
 		u64 ids[16] = {};
 		if (f->ch_layout.order == AV_CHANNEL_ORDER_NATIVE)
 		{
@@ -415,6 +422,7 @@ void BitstreamDecoder::Reset()
 	s.last_play_mode = -1;
 	s.words_seen = s.bursts = s.decoded_frames = s.decode_errors = 0;
 	s.announced = false;
+	s.format_name[0] = 0;
 	s.dump_words = 0;
 	s.load_attempted = attempted;
 	s.loaded = loaded;
@@ -463,6 +471,11 @@ void BitstreamDecoder::Feed(s16 left, s16 right, int play_mode)
 	// S/PDIF carries the left subframe first, then the right
 	FeedWord(static_cast<u16>(left));
 	FeedWord(static_cast<u16>(right));
+}
+
+const char* BitstreamDecoder::GetFormatName()
+{
+	return s.format_name;
 }
 
 u32 BitstreamDecoder::GetAvailableFrames()

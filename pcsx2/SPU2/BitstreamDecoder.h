@@ -21,6 +21,9 @@ namespace BitstreamDecoder
 	// Called for every output sample while the SPU2 is in a bypass (S/PDIF) mode, with core 0's raw input words.
 	void Feed(s16 left, s16 right, int play_mode);
 
+	// What is being decoded, e.g. "Dolby Digital 5.1" or "DTS 4.0". Empty until the first frame is decoded.
+	const char* GetFormatName();
+
 	// Frames of decoded audio waiting to be played.
 	u32 GetAvailableFrames();
 

@@ -48,6 +48,11 @@ AudioSettingsWidget::AudioSettingsWidget(SettingsWindow* settings_dialog, QWidge
 		&AudioStream::ParseExpansionMode, &AudioStream::GetExpansionModeName,
 		AudioStreamParameters::DEFAULT_EXPANSION_MODE);
 	SettingWidgetBinder::BindWidgetToIntSetting(sif, m_ui.interpolation, "SPU2/Output", "Interpolation", 0);
+	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.formatNotifications, "SPU2/Output", "FormatNotifications", false);
+	dialog()->registerWidgetHelp(m_ui.formatNotifications, tr("Show Audio Format Notifications"), tr("Unchecked"),
+		tr("Shows a notification when a game starts saying whether its audio is Stereo or Dolby Pro Logic II, and whenever "
+		   "the audio switches to Dolby Digital or DTS (for example during Dolby Digital FMVs or when a game's DTS option is "
+		   "selected) and back."));
 	dialog()->registerWidgetHelp(m_ui.interpolation, tr("Interpolation"), tr("Gaussian (Accurate to PS2)"),
 		tr("How voice samples are resampled. Gaussian matches the real PS2 sound chip, which softens high frequencies. "
 		   "Catmull-Rom was the default in PCSX2 1.6 and sounds brighter and crisper. "
