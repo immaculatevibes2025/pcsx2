@@ -60,6 +60,7 @@ struct AudioStreamParameters
 	s8 dpl2_dimension = DEFAULT_DPL2_DIMENSION;
 	bool dpl2_panorama = DEFAULT_DPL2_PANORAMA;
 	bool dpl2_multiband = DEFAULT_DPL2_MULTIBAND;
+	bool dpl2_stereo_passthrough = false; // not saved: set per game by "Supported Games Only" for stereo games
 
 	static constexpr AudioExpansionMode DEFAULT_EXPANSION_MODE = AudioExpansionMode::Disabled;
 	static constexpr u16 DEFAULT_BUFFER_MS = 50;

@@ -151,12 +151,15 @@ void SPU2::CreateOutputStream()
 	{
 		const std::string serial = VMManager::GetDiscSerial();
 		const bool supported = DPL2Games::IsSupported(serial);
-		params.expansion_mode = supported ? AudioExpansionMode::DolbyProLogicII : AudioExpansionMode::Disabled;
+		// Unlisted games stay plain stereo (front left/right only), but on a 5.1 stream, so Dolby Digital / DTS
+		// FMVs in otherwise stereo games (e.g. Metal Gear Solid 2) still play in discrete 5.1.
+		params.expansion_mode = AudioExpansionMode::DolbyProLogicII;
+		params.dpl2_stereo_passthrough = !supported;
 		Console.WriteLn("SPU2: '%s' %s Dolby Pro Logic II, using %s.", serial.c_str(), supported ? "supports" : "is not listed as supporting",
-			supported ? "Pro Logic II decoding" : "stereo");
+			supported ? "Pro Logic II decoding" : "stereo (Dolby Digital / DTS still decoded to 5.1)");
 	}
 
-	s_base_audio_format = GetBaseAudioFormatName(params.expansion_mode);
+	s_base_audio_format = params.dpl2_stereo_passthrough ? TRANSLATE_STR("SPU2", "Stereo") : GetBaseAudioFormatName(params.expansion_mode);
 	NotifyAudioFormat(s_base_audio_format);
 
 	Error error;

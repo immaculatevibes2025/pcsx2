@@ -375,7 +375,9 @@ namespace
 		else
 		{
 			// Not in an IEC 61937 burst: watch for a raw (unwrapped) DTS stream, 16-bit big-endian or 14-bit
-			if ((s.prev_word == 0x7FFE && w == 0x8001) || (s.prev_word == 0x1FFF && (w & 0xFFF0) == 0xE800))
+			// Sync words in all four DTS packings: 16-bit and 14-bit, big- and little-endian (byte-swapped words)
+			if ((s.prev_word == 0x7FFE && w == 0x8001) || (s.prev_word == 0x1FFF && (w & 0xFFF0) == 0xE800) ||
+				(s.prev_word == 0xFE7F && w == 0x0180) || (s.prev_word == 0xFF1F && (w & 0xF0FF) == 0x00E8))
 				s.raw_dts_syncs++;
 			if (s.raw_dts_syncs >= 2)
 			{

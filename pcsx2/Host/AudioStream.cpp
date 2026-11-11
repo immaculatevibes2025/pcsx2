@@ -536,6 +536,7 @@ void AudioStream::ExpandAllocate()
 		dpl2.dimension = m_parameters.dpl2_dimension;
 		dpl2.panorama = m_parameters.dpl2_panorama;
 		dpl2.multiband = m_parameters.dpl2_multiband;
+		dpl2.stereo_passthrough = m_parameters.dpl2_stereo_passthrough;
 		m_dpl2_decoder = std::make_unique<DolbyProLogicIIDecoder>(m_sample_rate, dpl2);
 		m_dpl2_output = std::make_unique<float[]>(CHUNK_SIZE * DolbyProLogicIIDecoder::NUM_OUTPUT_CHANNELS);
 		return;

@@ -64,6 +64,9 @@ public:
 		// Pro Logic II decoder does: it keeps dialogue in the centre while a broadband effect plays in a
 		// surround, where single-band steering has to choose one of them.
 		bool multiband = false;
+		// Stereo game on a 5.1 stream: front left/right only, no matrix decoding. Used so that stereo games which
+		// have Dolby Digital / DTS FMVs can still switch to discrete 5.1 for those without being upmixed otherwise.
+		bool stereo_passthrough = false;
 	};
 
 	DolbyProLogicIIDecoder(unsigned sample_rate, const Settings& settings)
@@ -153,6 +156,18 @@ public:
 	// in: interleaved stereo, out: interleaved 6 channels (FL, FC, FR, RL, RR, LFE)
 	void Decode(const float* in, float* out, unsigned frames)
 	{
+		if (m_settings.stereo_passthrough)
+		{
+			for (unsigned i = 0; i < frames; i++)
+			{
+				float* o = &out[i * NUM_OUTPUT_CHANNELS];
+				o[0] = in[i * 2 + 0];
+				o[2] = in[i * 2 + 1];
+				o[1] = o[3] = o[4] = o[5] = 0.0f;
+			}
+			return;
+		}
+
 		for (unsigned i = 0; i < frames; i++)
 		{
 			float l = in[i * 2 + 0];

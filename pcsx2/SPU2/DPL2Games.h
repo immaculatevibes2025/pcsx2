@@ -5,8 +5,9 @@
 
 // Serials of PS2 games that support Dolby Pro Logic II, used by the "Dolby Pro Logic II (5.1), Supported Games Only"
 // expansion mode. Built from the PS2-Home "PS2 Games Dolby Pro Logic II" list (537 titles), matched to
-// GameIndex.yaml names: 1576 serials covering 498 titles, all regions. Compilations and titles that could not be
-// matched reliably are not included; use per-game settings for those.
+// GameIndex.yaml names: 1571 serials covering 497 titles, all regions. Compilations and titles that could not be
+// matched reliably are not included; use per-game settings for those. Metal Gear Solid 2: Substance is listed
+// there but is a stereo game (Dolby Digital only in some FMVs), so it is left out.
 
 #include <algorithm>
 #include <array>
@@ -14,7 +15,7 @@
 
 namespace DPL2Games
 {
-	static constexpr std::array<std::string_view, 1576> SERIALS = {{
+	static constexpr std::array<std::string_view, 1571> SERIALS = {{
 		"PAPX-90523",
 		"PBPX-95601",
 		"PCPX-96649",
@@ -943,7 +944,6 @@ namespace DPL2Games
 		"SLES-55565",
 		"SLES-55578",
 		"SLES-55659",
-		"SLES-82009",
 		"SLES-82013",
 		"SLES-82024",
 		"SLES-82026",
@@ -1050,15 +1050,12 @@ namespace DPL2Games
 		"SLPM-66881",
 		"SLPM-66884",
 		"SLPM-66930",
-		"SLPM-67002",
-		"SLPM-67008",
 		"SLPM-68516",
 		"SLPM-68523",
 		"SLPM-74223",
 		"SLPM-74241",
 		"SLPM-74244",
 		"SLPM-74257",
-		"SLPM-74901",
 		"SLPS-25254",
 		"SLPS-25275",
 		"SLPS-25297",
@@ -1105,7 +1102,6 @@ namespace DPL2Games
 		"SLUS-20545",
 		"SLUS-20550",
 		"SLUS-20553",
-		"SLUS-20554",
 		"SLUS-20572",
 		"SLUS-20582",
 		"SLUS-20587",
