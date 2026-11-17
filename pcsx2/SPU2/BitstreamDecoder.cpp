@@ -225,13 +225,8 @@ namespace
 		const int nch = f->ch_layout.nb_channels;
 		{
 			const bool lfe = (f->ch_layout.order == AV_CHANNEL_ORDER_NATIVE) && (f->ch_layout.u.mask & AV_CH_LOW_FREQUENCY);
-			// Dolby Digital EX / DTS-ES: a matrixed (EX) or discrete (ES) back surround carried in the 5.1 stream.
-			// On a 5.1 system the surround channels already contain it, so only the name changes.
-			bool ex = false;
-			if (const AVFrameSideData* sd = bs_av_frame_get_side_data(f, AV_FRAME_DATA_MATRIXENCODING))
-				ex = sd->size >= static_cast<int>(sizeof(int)) && *reinterpret_cast<const int*>(sd->data) == AV_MATRIX_ENCODING_DOLBYEX;
-			const char* name = (s.codec == Codec::AC3) ? (ex ? "Dolby Digital EX" : "Dolby Digital") :
-								(s.ctx && (s.ctx->profile == AV_PROFILE_DTS_ES || ex)) ? "DTS-ES" : "DTS";
+			// Dolby Digital EX / DTS-ES streams are shown as plain Dolby Digital / DTS (their extra surround is matrixed)
+			const char* name = (s.codec == Codec::AC3) ? "Dolby Digital" : "DTS";
 			std::snprintf(s.format_name, sizeof(s.format_name), "%s %d.%d", name, lfe ? nch - 1 : nch, lfe ? 1 : 0);
 		}
 		u64 ids[16] = {};
