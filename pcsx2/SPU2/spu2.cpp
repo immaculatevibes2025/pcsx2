@@ -150,7 +150,8 @@ void SPU2::CreateOutputStream()
 	if (params.expansion_mode == AudioExpansionMode::DolbyProLogicIISupportedGames)
 	{
 		const std::string serial = VMManager::GetDiscSerial();
-		const bool supported = DPL2Games::IsSupported(serial);
+		// Homebrew and ELFs (no disc serial, e.g. the surround test program) are treated as supported
+		const bool supported = serial.empty() || DPL2Games::IsSupported(serial);
 		// Unlisted games stay plain stereo (front left/right only), but on a 5.1 stream, so Dolby Digital / DTS
 		// FMVs in otherwise stereo games (e.g. Metal Gear Solid 2) still play in discrete 5.1.
 		params.expansion_mode = AudioExpansionMode::DolbyProLogicII;
