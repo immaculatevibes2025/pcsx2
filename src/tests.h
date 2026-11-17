@@ -91,6 +91,7 @@ static const struct TestDef g_tests[] = {
 	{"DD 5.1: Subwoofer", "Shows Dolby Digital 5.1; voice in Center, 40 Hz tone from the subwoofer", "Dolby Digital 5.1 bitstream, 40 Hz on LFE", DEG_C, KIND_DTS, 37, 13},
 	{"DD 5.1: Dialogue + Surround Left", "Shows Dolby Digital 5.1; voice in Center, noise in Surround Left at once", "Dolby Digital 5.1 bitstream, Center + Surround Left", DEG_SL, KIND_DTS, 38, 14},
 	{"DD 5.1: Dialogue + Surround Right", "Shows Dolby Digital 5.1; voice in Center, noise in Surround Right at once", "Dolby Digital 5.1 bitstream, Center + Surround Right", DEG_SR, KIND_DTS, 39, 15},
+	{"DD EX: Back Surround", "Shows Dolby Digital EX 5.1; both surrounds equally (a 6.1/7.1 receiver plays it from the back)", "Dolby Digital EX bitstream, back surround matrixed into SL + SR", DEG_S, KIND_DTS, 40, 16},
 };
 
 // Spoken line looped as "dialogue" in the two-source test (index after the test labels)

@@ -56,6 +56,7 @@ LABELS = [
     "Dolby Digital, subwoofer",
     "Dolby Digital, dialogue and surround left",
     "Dolby Digital, dialogue and surround right",
+    "Dolby Digital EX, back surround",
     # looped "dialogue" for the two-source test (must stay last)
     "This is the dialogue. It should stay in the center speaker, while the noise plays behind you.",
 ]

@@ -40,6 +40,8 @@ FORMATS = [
     ("Dolby Digital", ["-c:a", "ac3", "-b:a", "640k"]),
 ]
 CLIPS = [("%s, %s" % (f, name), chans, kind, args) for f, args in FORMATS for name, chans, kind in BASE]
+# Clip 16: Dolby Digital EX - the back surround is matrixed in phase into both surrounds, with the EX flag set
+CLIPS.append(("Dolby Digital EX, back surround", [SL, SR], "noise", FORMATS[1][1] + ["-dsur_mode", "0", "-dsurex_mode", "on"]))
 
 
 def pink(n, seed):
