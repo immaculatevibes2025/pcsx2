@@ -564,7 +564,7 @@ void spu2Mix()
 	// SPU2 RAM directly, two L/R pairs per output sample, before ReadInput() refills the buffer.
 	if (PlayMode == 2)
 	{
-		const u16 p = (Cores[0].OutPos * 2) & 0x1FF;
+		const u16 p = (OutPos * 2) & 0x1FF;
 		for (u16 k = 0; k < 2; k++)
 		{
 			const u16 idx = (p + k) & 0x1FF;
