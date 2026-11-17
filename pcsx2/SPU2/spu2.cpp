@@ -596,10 +596,14 @@ __forceinline void spu2Output(StereoOut32 out)
 		{
 			s_output_stream->WriteChunkDiscrete(s_discrete_chunk.data());
 			s_discrete_idle_chunks = 0;
-			if (!s_discrete_announced)
+			// Announce on start, and again if the stream changes format (e.g. Dolby Digital -> Dolby Digital EX)
+			static std::string s_announced_name;
+			const char* name = BitstreamDecoder::GetFormatName();
+			if (!s_discrete_announced || s_announced_name != name)
 			{
 				s_discrete_announced = true;
-				NotifyAudioFormat(BitstreamDecoder::GetFormatName());
+				s_announced_name = name;
+				NotifyAudioFormat(s_announced_name);
 			}
 		}
 		else

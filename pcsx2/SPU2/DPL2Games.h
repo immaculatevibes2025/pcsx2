@@ -15,7 +15,7 @@
 
 namespace DPL2Games
 {
-	static constexpr std::array<std::string_view, 1571> SERIALS = {{
+	static constexpr std::array<std::string_view, 1575> SERIALS = {{
 		"PAPX-90523",
 		"PBPX-95601",
 		"PCPX-96649",
@@ -301,6 +301,7 @@ namespace DPL2Games
 		"SLED-54509",
 		"SLES-50479",
 		"SLES-50481",
+		"SLES-50545",
 		"SLES-50731",
 		"SLES-50753",
 		"SLES-50812",
@@ -992,6 +993,7 @@ namespace DPL2Games
 		"SLPM-61092",
 		"SLPM-61109",
 		"SLPM-61114",
+		"SLPM-65104",
 		"SLPM-65181",
 		"SLPM-65358",
 		"SLPM-65666",
@@ -1056,6 +1058,7 @@ namespace DPL2Games
 		"SLPM-74241",
 		"SLPM-74244",
 		"SLPM-74257",
+		"SLPS-25078",
 		"SLPS-25254",
 		"SLPS-25275",
 		"SLPS-25297",
@@ -1071,6 +1074,7 @@ namespace DPL2Games
 		"SLUS-20179",
 		"SLUS-20209",
 		"SLUS-20312",
+		"SLUS-20326",
 		"SLUS-20329",
 		"SLUS-20331",
 		"SLUS-20333",
@@ -1589,8 +1593,16 @@ namespace DPL2Games
 		"TCPS-10127",
 	}};
 
+	// Homebrew and ELFs report their file name instead of a disc serial (e.g. "surround-test"); treat them as supported.
+	static inline bool IsDiscSerial(std::string_view serial)
+	{
+		return serial.size() == 10 && serial[4] == '-';
+	}
+
 	static inline bool IsSupported(std::string_view serial)
 	{
+		if (!IsDiscSerial(serial))
+			return true;
 		return std::binary_search(SERIALS.begin(), SERIALS.end(), serial);
 	}
 } // namespace DPL2Games
