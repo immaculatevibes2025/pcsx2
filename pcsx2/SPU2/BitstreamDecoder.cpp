@@ -23,6 +23,7 @@ extern "C" {
 #include "libavcodec/version.h"
 #include "libavutil/channel_layout.h"
 #include "libavutil/frame.h"
+#include "libavutil/channel_layout.h"
 #include "libavutil/version.h"
 }
 
@@ -45,7 +46,8 @@ extern "C" {
 #define VISIT_BS_AVUTIL_IMPORTS(X) \
 	X(av_frame_alloc) \
 	X(av_frame_free) \
-	X(av_frame_unref)
+	X(av_frame_unref) \
+	X(av_frame_get_side_data)
 
 #define DECLARE_IMPORT(X) static decltype(X)* bs_##X;
 VISIT_BS_AVCODEC_IMPORTS(DECLARE_IMPORT);
@@ -223,8 +225,14 @@ namespace
 		const int nch = f->ch_layout.nb_channels;
 		{
 			const bool lfe = (f->ch_layout.order == AV_CHANNEL_ORDER_NATIVE) && (f->ch_layout.u.mask & AV_CH_LOW_FREQUENCY);
-			std::snprintf(s.format_name, sizeof(s.format_name), "%s %d.%d", (s.codec == Codec::AC3) ? "Dolby Digital" : "DTS",
-				lfe ? nch - 1 : nch, lfe ? 1 : 0);
+			// Dolby Digital EX / DTS-ES: a matrixed (EX) or discrete (ES) back surround carried in the 5.1 stream.
+			// On a 5.1 system the surround channels already contain it, so only the name changes.
+			bool ex = false;
+			if (const AVFrameSideData* sd = bs_av_frame_get_side_data(f, AV_FRAME_DATA_MATRIXENCODING))
+				ex = sd->size >= static_cast<int>(sizeof(int)) && *reinterpret_cast<const int*>(sd->data) == AV_MATRIX_ENCODING_DOLBYEX;
+			const char* name = (s.codec == Codec::AC3) ? (ex ? "Dolby Digital EX" : "Dolby Digital") :
+								(s.ctx && (s.ctx->profile == AV_PROFILE_DTS_ES || ex)) ? "DTS-ES" : "DTS";
+			std::snprintf(s.format_name, sizeof(s.format_name), "%s %d.%d", name, lfe ? nch - 1 : nch, lfe ? 1 : 0);
 		}
 		u64 ids[16] = {};
 		if (f->ch_layout.order == AV_CHANNEL_ORDER_NATIVE)

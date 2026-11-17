@@ -559,17 +559,14 @@ void spu2Mix()
 	// Digital or DTS for in-game DTS and Dolby Digital FMVs). Games still expect the ADMA stream to be read, so it is
 	// read as before, and the raw words also go to the bitstream decoder.
 	//
-	// Mode 2 (S/PDIF mode bit set, used by games such as SSX Tricky and GTA Vice City) is the real bitstream mode:
-	// ReadInput() returns nothing for it and the ADMA buffer is consumed twice as fast, so the words are read from
-	// SPU2 RAM directly, two L/R pairs per output sample, before ReadInput() refills the buffer.
+	// Mode 2 (S/PDIF mode bit set, used by SSX Tricky, FFX-2 and others) is the real bitstream mode: ReadInput()
+	// returns nothing for it and the ADMA buffer is consumed twice as fast. The S/PDIF stream is the core 0 LEFT
+	// buffer read as consecutive words (checked against an SSX Tricky capture: IEC 61937 DTS bursts every 1024 left
+	// words), so the two left words read per output sample form one S/PDIF frame.
 	if (PlayMode == 2)
 	{
 		const u16 p = (OutPos * 2) & 0x1FF;
-		for (u16 k = 0; k < 2; k++)
-		{
-			const u16 idx = (p + k) & 0x1FF;
-			BitstreamDecoder::Feed(static_cast<s16>(*GetMemPtr(0x2000 + idx)), static_cast<s16>(*GetMemPtr(0x2200 + idx)), PlayMode);
-		}
+		BitstreamDecoder::Feed(static_cast<s16>(*GetMemPtr(0x2000 + p)), static_cast<s16>(*GetMemPtr(0x2000 + ((p + 1) & 0x1FF))), PlayMode);
 	}
 	const StereoOut32 core0_input = Cores[0].ReadInput();
 	if (PlayMode == 4)
