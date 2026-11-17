@@ -43,7 +43,7 @@ These play real DTS 5.1 bitstreams over the PS2's S/PDIF path, the same way SSX 
 - In PCSX2 set **Expansion: Dolby Pro Logic II (5.1)** (or Supported Games Only, which treats homebrew like this test as supported) and turn on **Format notifications** to see "Audio: DTS 5.1" when a DTS test starts.
 - Each clip has a spoken label and noise bursts on one discrete channel only. Nothing should leak to other speakers.
 - Tests 33–40 are the same eight clips in Dolby Digital 5.1 (AC-3, 640 kbps). The notification should show "Audio: Dolby Digital 5.1".
-- Test 41 is Dolby Digital EX: the back surround is matrixed into both surrounds and the notification should show "Dolby Digital EX 5.1".
+- Test 41 is Dolby Digital EX: the back surround is matrixed into both surrounds and the notification shows "Dolby Digital 5.1".
 - **Subwoofer** announces from the centre, then plays a 40 Hz tone on the LFE channel only.
 - On a real PS2 with optical out, the receiver should switch to DTS.
 - Without a DTS decoder you hear silence. That is expected, because bitstream mode outputs no PCM.
