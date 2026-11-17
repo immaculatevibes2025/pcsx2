@@ -86,7 +86,7 @@ StereoOut32 V_Core::ReadInput_HiFi()
 
 StereoOut32 V_Core::ReadInput()
 {
-	StereoOut32 retval;
+	StereoOut32 retval(0, 0); // stays silent in bypass mode (was uninitialised)
 	u16 ReadIndex = OutPos;
 
 	for (int i = 0; i < 2; i++)
