@@ -378,7 +378,7 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 				on = SpeakerGain(dts ? Audio_ThetaToAzimuth(t->theta) : az, s->az);
 		}
 		// Two-source test: the dialogue keeps the centre lit under the bursts
-		if ((active && t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE)) || (dts && t->clip == DTS_CLIP_DUAL))
+		if ((active && t->kind == KIND_DUAL && (a->phase == PHASE_BURST || a->phase == PHASE_PAUSE)) || (dts && DTS_CLIP_IS_DUAL(t->clip)))
 			on = fmaxf(on, SpeakerGain(0.0f, s->az));
 		if (on > 0.0f)
 			Disc(sx, sy, 22.0f + 6.0f * on, COL_GLOW);
@@ -388,7 +388,7 @@ static void DrawRoom(float cx, float cy, float rad, const struct AudioState* a, 
 
 	// Subwoofer, in the room's front-right corner
 	const float swx = cx + rad + 8.0f, swy = cy - rad - 8.0f;
-	const int sub_on = sounding && (t->kind == KIND_LFE || (dts && t->clip == DTS_CLIP_SUB));
+	const int sub_on = sounding && (t->kind == KIND_LFE || (dts && DTS_CLIP_IS_SUB(t->clip)));
 	if (sub_on)
 		Disc(swx, swy, 18.0f, COL_GLOW);
 	Rect(swx - 11, swy - 11, swx + 11, swy + 11,

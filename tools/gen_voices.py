@@ -47,6 +47,15 @@ LABELS = [
     "DTS, surround left",
     "DTS, subwoofer",
     "DTS, dialogue and surround left",
+    "DTS, dialogue and surround right",
+    "Dolby Digital, front left",
+    "Dolby Digital, center",
+    "Dolby Digital, front right",
+    "Dolby Digital, surround right",
+    "Dolby Digital, surround left",
+    "Dolby Digital, subwoofer",
+    "Dolby Digital, dialogue and surround left",
+    "Dolby Digital, dialogue and surround right",
     # looped "dialogue" for the two-source test (must stay last)
     "This is the dialogue. It should stay in the center speaker, while the noise plays behind you.",
 ]
